@@ -27,7 +27,7 @@ public class AuthService {
 
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
@@ -38,8 +38,10 @@ public class AuthService {
                 user.getRole().name()
         );
 
-        return new AuthResponse(token);
+        // Pass both token and role to the AuthResponse constructor
+        return new AuthResponse(token, user.getRole());
     }
+
 
     public void register(RegisterRequest request) {
         User user = new User();
