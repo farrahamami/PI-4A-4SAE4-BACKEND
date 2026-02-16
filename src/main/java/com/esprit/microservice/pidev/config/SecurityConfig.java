@@ -18,7 +18,9 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                "/api/events/**",
+                                "/api/activities/**"
                         ).permitAll()
 
                         // Auth endpoints
@@ -31,6 +33,7 @@ public class SecurityConfig {
                                 "/api/users/**",
                                 "/api/evenements/**",
                                 "/api/forum/**"
+
                         ).permitAll()
 
                         // Everything else requires authentication
