@@ -1,5 +1,7 @@
 package com.esprit.microservice.pidev.Entities;
 
+import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.FreelancerSkill;
+import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.Project;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -33,4 +36,10 @@ public class User {
     private Role role;
 
     private boolean enabled = true;
+
+    @OneToMany(mappedBy = "freelancer")
+    private List<FreelancerSkill> freelancerSkills;
+
+    @OneToMany(mappedBy = "client")
+    private List<Project> projects;
 }
