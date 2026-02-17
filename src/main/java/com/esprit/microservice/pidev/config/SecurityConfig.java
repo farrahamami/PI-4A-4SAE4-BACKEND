@@ -39,7 +39,8 @@ public class SecurityConfig {
                                 "/api/evenements/**",
                                 "/api/forum/**",
                                 "/api/publications/**",      // ✅ AJOUTÉ
-                                "/api/commentaires/**"       // ✅ AJOUTÉ
+                                "/api/commentaires/**",      // ✅ AJOUTÉ
+                                "/uploads/**"               // ✅ Accès public aux images uploadées
                         ).permitAll()
 
                         // Everything else requires authentication

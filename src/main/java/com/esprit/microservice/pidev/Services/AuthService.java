@@ -38,8 +38,8 @@ public class AuthService {
                 user.getRole().name()
         );
 
-        // Pass both token and role to the AuthResponse constructor
-        return new AuthResponse(token, user.getRole());
+        // Pass token, role and userId to the AuthResponse constructor
+        return new AuthResponse(token, user.getRole(), user.getId());
     }
 
 
