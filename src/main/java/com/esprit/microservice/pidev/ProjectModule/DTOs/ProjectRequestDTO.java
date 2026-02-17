@@ -23,5 +23,6 @@ public class ProjectRequestDTO {
     private ProjectStatus status;
     private Category category;
     private Integer clientId;           // just the client ID
-    private List<Integer> skillIds;     // IDs of FreelancerSkill
+    private List<Integer> skillIds;
+    private List<TaskDTO> tasks;
 }

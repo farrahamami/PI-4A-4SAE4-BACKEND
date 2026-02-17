@@ -1,6 +1,7 @@
 package com.esprit.microservice.pidev.ProjectModule.Domain.Entities;
 
 import com.esprit.microservice.pidev.ProjectModule.Domain.Enums.Priority;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,6 +32,7 @@ public class Task {
 
     String milestone;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "project_id")
     Project project;

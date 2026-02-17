@@ -2,6 +2,7 @@ package com.esprit.microservice.pidev.Entities;
 
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.FreelancerSkill;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.Project;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,9 +38,11 @@ public class User {
 
     private boolean enabled = true;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "freelancer")
     private List<FreelancerSkill> freelancerSkills;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "client")
     private List<Project> projects;
 }

@@ -3,6 +3,7 @@ package com.esprit.microservice.pidev.ProjectModule.Domain.Entities;
 import com.esprit.microservice.pidev.Entities.User;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Enums.Availability;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Enums.SkillLevel;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -42,9 +43,11 @@ public class FreelancerSkill {
 
     // Relation avec User (Freelancer)
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "freelancer_id")
     private User freelancer;
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "requiredSkills")
     private List<Project> projects;
 }

@@ -1,6 +1,8 @@
 package com.esprit.microservice.pidev.Controllers;
 import com.esprit.microservice.pidev.Entities.User;
+import com.esprit.microservice.pidev.Repositories.UserRepository;
 import com.esprit.microservice.pidev.Services.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -8,9 +10,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService service;
+    private final UserRepository userRepository;
 
-    public UserController(UserService service) {
+    public UserController(UserService service, UserRepository userRepository) {
         this.service = service;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/{id}")
@@ -22,4 +26,6 @@ public class UserController {
     public void deactivate(@PathVariable Integer id) {
         service.deactivate(id);
     }
+
+
 }

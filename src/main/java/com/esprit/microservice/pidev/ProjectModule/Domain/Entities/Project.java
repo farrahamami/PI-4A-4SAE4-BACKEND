@@ -2,6 +2,7 @@ package com.esprit.microservice.pidev.ProjectModule.Domain.Entities;
 import com.esprit.microservice.pidev.Entities.User;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Enums.Category;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Enums.ProjectStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -36,6 +37,7 @@ public class Project {
     ProjectStatus status;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     Category category;
 
     LocalDate createdAt;
@@ -47,7 +49,9 @@ public class Project {
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     List<Task> tasks;
+
     @ManyToMany
+    @JsonIgnore
     @JoinTable(
             name = "project_skills",
             joinColumns = @JoinColumn(name = "project_id"),
