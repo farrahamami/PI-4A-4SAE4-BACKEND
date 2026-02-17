@@ -1,5 +1,7 @@
 package com.esprit.microservice.pidev.modules.subscription.service;
 
+import com.esprit.microservice.pidev.Entities.User;
+import com.esprit.microservice.pidev.Repositories.UserRepository;
 import com.esprit.microservice.pidev.modules.subscription.domain.entities.Subscription;
 import com.esprit.microservice.pidev.modules.subscription.domain.entities.UserSubscription;
 import com.esprit.microservice.pidev.modules.subscription.domain.enums.BillingCycle;
@@ -29,12 +31,16 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
     private final UserSubscriptionRepository userSubscriptionRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final UserSubscriptionMapper userSubscriptionMapper;
+    private final UserRepository userRepository;
 
     @Override
     public UserSubscriptionResponse subscribe(SubscribeRequest request) {
         log.info("Souscription de l'utilisateur {} au plan {}", request.getUserId(), request.getSubscriptionId());
 
-        if (userSubscriptionRepository.existsByUserIdAndStatus(request.getUserId(), SubscriptionStatus.ACTIVE)) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + request.getUserId()));
+
+        if (userSubscriptionRepository.existsByUserIdAndStatus(request.getUserId().longValue(), SubscriptionStatus.ACTIVE)) {
             throw new BusinessException("Vous avez déjà un abonnement actif. Veuillez l'annuler avant de souscrire à un nouveau plan.");
         }
 
@@ -46,7 +52,7 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
         }
 
         UserSubscription userSubscription = new UserSubscription();
-        userSubscription.setUserId(request.getUserId());
+        userSubscription.setUser(user);
         userSubscription.setSubscription(subscription);
         userSubscription.setStatus(SubscriptionStatus.ACTIVE);
         userSubscription.setStartDate(LocalDateTime.now());
@@ -118,6 +124,9 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
     public UserSubscriptionResponse renewSubscription(Long userId) {
         log.info("Renouvellement de l'abonnement pour l'utilisateur {}", userId);
 
+        User user = userRepository.findById(userId.intValue())
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID: " + userId));
+
         List<UserSubscription> subscriptions = userSubscriptionRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
         if (subscriptions.isEmpty()) {
@@ -131,7 +140,7 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
         }
 
         UserSubscription newSubscription = new UserSubscription();
-        newSubscription.setUserId(userId);
+        newSubscription.setUser(user);
         newSubscription.setSubscription(lastSubscription.getSubscription());
         newSubscription.setStatus(SubscriptionStatus.ACTIVE);
         newSubscription.setStartDate(LocalDateTime.now());
@@ -171,18 +180,18 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
         for (UserSubscription subscription : expiredSubscriptions) {
             if (subscription.getAutoRenew()) {
                 try {
-                    renewSubscription(subscription.getUserId());
-                    log.info("Abonnement renouvelé automatiquement pour l'utilisateur {}", subscription.getUserId());
+                    renewSubscription(subscription.getUser().getId().longValue());
+                    log.info("Abonnement renouvelé automatiquement pour l'utilisateur {}", subscription.getUser().getId());
                 } catch (Exception e) {
                     log.error("Erreur lors du renouvellement automatique pour l'utilisateur {}: {}",
-                            subscription.getUserId(), e.getMessage());
+                            subscription.getUser().getId(), e.getMessage());
                     subscription.setStatus(SubscriptionStatus.EXPIRED);
                     userSubscriptionRepository.save(subscription);
                 }
             } else {
                 subscription.setStatus(SubscriptionStatus.EXPIRED);
                 userSubscriptionRepository.save(subscription);
-                log.info("Abonnement marqué comme expiré pour l'utilisateur {}", subscription.getUserId());
+                log.info("Abonnement marqué comme expiré pour l'utilisateur {}", subscription.getUser().getId());
             }
         }
 

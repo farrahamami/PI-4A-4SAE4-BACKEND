@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 public class SubscribeRequest {
 
     @NotNull(message = "L'ID de l'utilisateur est obligatoire")
-    private Long userId;
+    private Integer userId;
 
     @NotNull(message = "L'ID de l'abonnement est obligatoire")
     private Long subscriptionId;

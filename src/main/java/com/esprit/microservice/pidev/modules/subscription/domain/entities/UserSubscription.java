@@ -1,6 +1,6 @@
 package com.esprit.microservice.pidev.modules.subscription.domain.entities;
 
-
+import com.esprit.microservice.pidev.Entities.User;
 import com.esprit.microservice.pidev.modules.subscription.domain.enums.SubscriptionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,8 +25,9 @@ public class UserSubscription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_id", nullable = false)

@@ -9,7 +9,6 @@ import com.esprit.microservice.pidev.Repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-
 @Service
 public class AuthService {
 
@@ -35,10 +34,12 @@ public class AuthService {
 
         String token = jwtService.generateToken(
                 user.getEmail(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getId()
         );
 
-        return new AuthResponse(token);
+        // ✅ All 3 args match AuthResponse(String token, Role role, Integer userId)
+        return new AuthResponse(token, user.getRole(), user.getId());
     }
 
     public void register(RegisterRequest request) {
@@ -50,12 +51,11 @@ public class AuthService {
         user.setBirthDate(request.getBirthDate());
         user.setEnabled(true);
 
-        // Convert string to enum
         Role role;
         try {
             role = Role.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            role = Role.CLIENT; // default if invalid
+            role = Role.CLIENT;
         }
         user.setRole(role);
 

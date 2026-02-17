@@ -1,6 +1,5 @@
 package com.esprit.microservice.pidev.modules.subscription.mapper;
 
-
 import com.esprit.microservice.pidev.modules.subscription.domain.entities.UserSubscription;
 import com.esprit.microservice.pidev.modules.subscription.dto.response.UserSubscriptionResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +17,8 @@ public class UserSubscriptionMapper {
     public UserSubscriptionResponse toResponse(UserSubscription userSubscription) {
         Long daysRemaining = calculateDaysRemaining(userSubscription.getEndDate());
 
-        return UserSubscriptionResponse.builder()
+        UserSubscriptionResponse.UserSubscriptionResponseBuilder builder = UserSubscriptionResponse.builder()
                 .id(userSubscription.getId())
-                .userId(userSubscription.getUserId())
                 .subscription(subscriptionMapper.toResponse(userSubscription.getSubscription()))
                 .status(userSubscription.getStatus())
                 .startDate(userSubscription.getStartDate())
@@ -35,8 +33,16 @@ public class UserSubscriptionMapper {
                 .createdAt(userSubscription.getCreatedAt())
                 .updatedAt(userSubscription.getUpdatedAt())
                 .daysRemaining(daysRemaining)
-                .isExpiringSoon(daysRemaining != null && daysRemaining <= 30)
-                .build();
+                .isExpiringSoon(daysRemaining != null && daysRemaining <= 30);
+
+        if (userSubscription.getUser() != null) {
+            builder.userId(userSubscription.getUser().getId())
+                    .userName(userSubscription.getUser().getName())
+                    .userLastName(userSubscription.getUser().getLastName())
+                    .userEmail(userSubscription.getUser().getEmail());
+        }
+
+        return builder.build();
     }
 
     private Long calculateDaysRemaining(LocalDateTime endDate) {
