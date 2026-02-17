@@ -20,8 +20,7 @@ public class CommentaireController {
     @GetMapping
     public ResponseEntity<List<Commentaire>> getAllCommentaires() {
         try {
-            List<Commentaire> commentaires = commentaireService.getAllCommentaires();
-            return ResponseEntity.ok(commentaires);
+            return ResponseEntity.ok(commentaireService.getAllCommentaires());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -30,8 +29,7 @@ public class CommentaireController {
     @GetMapping("/publication/{publicationId}")
     public ResponseEntity<List<Commentaire>> getCommentairesByPublicationId(@PathVariable Integer publicationId) {
         try {
-            List<Commentaire> commentaires = commentaireService.getCommentairesByPublicationId(publicationId);
-            return ResponseEntity.ok(commentaires);
+            return ResponseEntity.ok(commentaireService.getCommentairesByPublicationId(publicationId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -40,8 +38,7 @@ public class CommentaireController {
     @GetMapping("/{id}")
     public ResponseEntity<Commentaire> getCommentaireById(@PathVariable Integer id) {
         try {
-            Commentaire commentaire = commentaireService.getCommentaireById(id);
-            return ResponseEntity.ok(commentaire);
+            return ResponseEntity.ok(commentaireService.getCommentaireById(id));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
@@ -64,6 +61,26 @@ public class CommentaireController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erreur lors de la création du commentaire");
+        }
+    }
+
+    // ✅ NOUVEAU endpoint : répondre à un commentaire
+    @PostMapping("/{parentId}/reply")
+    public ResponseEntity<?> replyToCommentaire(
+            @PathVariable Integer parentId,
+            @RequestParam("contenue") String contenue,
+            @RequestParam("publicationId") Integer publicationId,
+            @RequestParam("userId") Integer userId) {
+        try {
+            Commentaire reply = commentaireService.replyToCommentaire(contenue, parentId, publicationId, userId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(reply);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de la création de la réponse");
         }
     }
 

@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "commentaires")
@@ -36,11 +38,20 @@ public class Commentaire {
     @JsonIgnoreProperties({"publications", "commentaires", "password", "email"})
     private User user;
 
-    // ✅ SOLUTION : Seulement la relation, PAS de champ séparé
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "publication_id", nullable = false)
     @JsonIgnoreProperties("commentaires")
     private Publication publication;
+
+    // ✅ NOUVEAU : relation self-referencing pour les réponses
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "parent_id", nullable = true)
+    @JsonIgnoreProperties({"replies", "publication"})
+    private Commentaire parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("parent")
+    private List<Commentaire> replies = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

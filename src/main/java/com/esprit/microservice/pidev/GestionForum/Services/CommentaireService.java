@@ -23,8 +23,9 @@ public class CommentaireService {
         return commentaireRepository.findAllByOrderByCreateAtDesc();
     }
 
+    // ✅ Retourne uniquement les commentaires racine (sans parent) avec leurs replies chargées
     public List<Commentaire> getCommentairesByPublicationId(Integer publicationId) {
-        return commentaireRepository.findByPublicationIdOrderByCreateAtAsc(publicationId);
+        return commentaireRepository.findRootCommentairesByPublicationId(publicationId);
     }
 
     public Commentaire getCommentaireById(Integer id) {
@@ -32,15 +33,8 @@ public class CommentaireService {
                 .orElseThrow(() -> new RuntimeException("Commentaire non trouvé avec l'id: " + id));
     }
 
+    // ✅ Créer un commentaire racine (sans parent)
     public Commentaire createCommentaire(String contenue, Integer publicationId, Integer userId) {
-
-        System.out.println("═══════════════════════════════════════");
-        System.out.println("📝 SERVICE - Création commentaire");
-        System.out.println("Publication ID: " + publicationId);
-        System.out.println("User ID: " + userId);
-        System.out.println("Contenu: " + contenue);
-        System.out.println("═══════════════════════════════════════");
-
         if (contenue == null || contenue.trim().isEmpty()) {
             throw new IllegalArgumentException("Le contenu du commentaire est obligatoire");
         }
@@ -48,28 +42,43 @@ public class CommentaireService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // ✅ Récupérer la publication COMPLÈTE (pas juste vérifier qu'elle existe)
         Publication publication = publicationRepository.findById(publicationId)
                 .orElseThrow(() -> new RuntimeException("Publication non trouvée avec l'ID: " + publicationId));
-
-        System.out.println("✅ User trouvé: " + user.getName());
-        System.out.println("✅ Publication trouvée: " + publication.getTitre());
 
         Commentaire commentaire = new Commentaire();
         commentaire.setContenue(contenue);
         commentaire.setUser(user);
-        commentaire.setPublication(publication);  // ✅ Assigner la PUBLICATION complète
+        commentaire.setPublication(publication);
+        commentaire.setParent(null); // commentaire racine
 
-        Commentaire saved = commentaireRepository.save(commentaire);
+        return commentaireRepository.save(commentaire);
+    }
 
-        System.out.println("✅ Commentaire créé avec ID: " + saved.getId());
-        System.out.println("✅ Pour publication: " + saved.getPublication().getTitre());
+    // ✅ NOUVEAU : Créer une réponse à un commentaire existant
+    public Commentaire replyToCommentaire(String contenue, Integer parentId, Integer publicationId, Integer userId) {
+        if (contenue == null || contenue.trim().isEmpty()) {
+            throw new IllegalArgumentException("Le contenu de la réponse est obligatoire");
+        }
 
-        return saved;
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        Publication publication = publicationRepository.findById(publicationId)
+                .orElseThrow(() -> new RuntimeException("Publication non trouvée avec l'ID: " + publicationId));
+
+        Commentaire parent = commentaireRepository.findById(parentId)
+                .orElseThrow(() -> new RuntimeException("Commentaire parent non trouvé avec l'ID: " + parentId));
+
+        Commentaire reply = new Commentaire();
+        reply.setContenue(contenue);
+        reply.setUser(user);
+        reply.setPublication(publication);
+        reply.setParent(parent);
+
+        return commentaireRepository.save(reply);
     }
 
     public Commentaire updateCommentaire(Integer id, String contenue, Integer userId) {
-
         Commentaire commentaire = getCommentaireById(id);
 
         if (!commentaire.getUser().getId().equals(userId)) {
