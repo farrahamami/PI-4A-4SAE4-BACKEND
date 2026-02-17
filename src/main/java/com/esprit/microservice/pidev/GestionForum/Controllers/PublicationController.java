@@ -23,8 +23,7 @@ public class PublicationController {
     @GetMapping
     public ResponseEntity<List<Publication>> getAllPublications() {
         try {
-            List<Publication> publications = publicationService.getAllPublications();
-            return ResponseEntity.ok(publications);
+            return ResponseEntity.ok(publicationService.getAllPublications());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -33,8 +32,7 @@ public class PublicationController {
     @GetMapping("/type/{type}")
     public ResponseEntity<List<Publication>> getPublicationsByType(@PathVariable TypePublication type) {
         try {
-            List<Publication> publications = publicationService.getPublicationsByType(type);
-            return ResponseEntity.ok(publications);
+            return ResponseEntity.ok(publicationService.getPublicationsByType(type));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -43,8 +41,7 @@ public class PublicationController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Publication>> getPublicationsByUserId(@PathVariable Integer userId) {
         try {
-            List<Publication> publications = publicationService.getPublicationsByUserId(userId);
-            return ResponseEntity.ok(publications);
+            return ResponseEntity.ok(publicationService.getPublicationsByUserId(userId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -53,8 +50,7 @@ public class PublicationController {
     @GetMapping("/{id}")
     public ResponseEntity<Publication> getPublicationById(@PathVariable Integer id) {
         try {
-            Publication publication = publicationService.getPublicationById(id);
-            return ResponseEntity.ok(publication);
+            return ResponseEntity.ok(publicationService.getPublicationById(id));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
@@ -62,15 +58,16 @@ public class PublicationController {
         }
     }
 
+    // ✅ POST — accepte une liste de fichiers image (champ "images")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createPublication(
             @RequestParam("titre") String titre,
             @RequestParam("contenue") String contenue,
             @RequestParam("type") TypePublication type,
             @RequestParam("userId") Integer userId,
-            @RequestParam(value = "image", required = false) MultipartFile image) {
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         try {
-            Publication publication = publicationService.createPublication(titre, contenue, type, userId, image);
+            Publication publication = publicationService.createPublication(titre, contenue, type, userId, images);
             return ResponseEntity.status(HttpStatus.CREATED).body(publication);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -82,6 +79,7 @@ public class PublicationController {
         }
     }
 
+    // ✅ PUT — accepte de nouvelles images + liste des images à conserver
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updatePublication(
             @PathVariable Integer id,
@@ -89,9 +87,11 @@ public class PublicationController {
             @RequestParam(value = "contenue", required = false) String contenue,
             @RequestParam(value = "type", required = false) TypePublication type,
             @RequestParam("userId") Integer userId,
-            @RequestParam(value = "image", required = false) MultipartFile image) {
+            @RequestParam(value = "images", required = false) List<MultipartFile> newImages,
+            @RequestParam(value = "imagesToKeep", required = false) List<String> imagesToKeep) {
         try {
-            Publication publication = publicationService.updatePublication(id, titre, contenue, type, userId, image);
+            Publication publication = publicationService.updatePublication(
+                    id, titre, contenue, type, userId, newImages, imagesToKeep);
             return ResponseEntity.ok(publication);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -104,7 +104,8 @@ public class PublicationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletePublication(@PathVariable Integer id, @RequestParam("userId") Integer userId) {
+    public ResponseEntity<?> deletePublication(@PathVariable Integer id,
+                                               @RequestParam("userId") Integer userId) {
         try {
             publicationService.deletePublication(id, userId);
             return ResponseEntity.ok("Publication supprimée avec succès");

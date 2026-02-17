@@ -30,7 +30,11 @@ public class Publication {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String contenue;
 
-    private String image;
+    // ✅ MULTI-IMAGES : liste de noms de fichiers séparés par des virgules
+    @ElementCollection
+    @CollectionTable(name = "publication_images", joinColumns = @JoinColumn(name = "publication_id"))
+    @Column(name = "image_name")
+    private List<String> images = new ArrayList<>();
 
     @Column(name = "create_at", nullable = false, updatable = false)
     private LocalDateTime createAt;
@@ -55,7 +59,4 @@ public class Publication {
     protected void onCreate() {
         createAt = LocalDateTime.now();
     }
-
-
-
 }

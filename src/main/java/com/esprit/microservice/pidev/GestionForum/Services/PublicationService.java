@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +26,8 @@ public class PublicationService {
     private final UserRepository userRepository;
 
     private static final String UPLOAD_DIR = "uploads/publications/";
+    // ✅ Nombre maximum d'images autorisées par publication
+    private static final int MAX_IMAGES = 5;
 
     public List<Publication> getAllPublications() {
         return publicationRepository.findAllByOrderByCreateAtDesc();
@@ -43,9 +46,10 @@ public class PublicationService {
                 .orElseThrow(() -> new RuntimeException("Publication non trouvée avec l'id: " + id));
     }
 
-    public Publication createPublication(String titre, String contenue, TypePublication type, 
-                                         Integer userId, MultipartFile image) throws IOException {
-        
+    // ✅ CREATION avec plusieurs images
+    public Publication createPublication(String titre, String contenue, TypePublication type,
+                                         Integer userId, List<MultipartFile> images) throws IOException {
+
         if (titre == null || titre.trim().isEmpty()) {
             throw new IllegalArgumentException("Le titre est obligatoire");
         }
@@ -54,6 +58,9 @@ public class PublicationService {
         }
         if (type == null) {
             throw new IllegalArgumentException("Le type est obligatoire");
+        }
+        if (images != null && images.size() > MAX_IMAGES) {
+            throw new IllegalArgumentException("Vous ne pouvez pas uploader plus de " + MAX_IMAGES + " images");
         }
 
         User user = userRepository.findById(userId)
@@ -65,17 +72,27 @@ public class PublicationService {
         publication.setType(type);
         publication.setUser(user);
 
-        if (image != null && !image.isEmpty()) {
-            String imagePath = saveImage(image);
-            publication.setImage(imagePath);
+        // ✅ Sauvegarder chaque image
+        if (images != null && !images.isEmpty()) {
+            List<String> imageNames = new ArrayList<>();
+            for (MultipartFile image : images) {
+                if (!image.isEmpty()) {
+                    String imageName = saveImage(image);
+                    imageNames.add(imageName);
+                }
+            }
+            publication.setImages(imageNames);
         }
 
         return publicationRepository.save(publication);
     }
 
-    public Publication updatePublication(Integer id, String titre, String contenue, 
-                                         TypePublication type, Integer userId, MultipartFile image) throws IOException {
-        
+    // ✅ MISE A JOUR avec plusieurs images
+    public Publication updatePublication(Integer id, String titre, String contenue,
+                                         TypePublication type, Integer userId,
+                                         List<MultipartFile> newImages,
+                                         List<String> imagesToKeep) throws IOException {
+
         Publication publication = getPublicationById(id);
 
         if (!publication.getUser().getId().equals(userId)) {
@@ -92,15 +109,35 @@ public class PublicationService {
             publication.setType(type);
         }
 
-        if (image != null && !image.isEmpty()) {
-            // Supprimer l'ancienne image si elle existe
-            if (publication.getImage() != null) {
-                deleteImage(publication.getImage());
+        // ✅ Supprimer les images qui ne sont plus dans la liste "à garder"
+        List<String> currentImages = new ArrayList<>(publication.getImages());
+        for (String currentImage : currentImages) {
+            if (imagesToKeep == null || !imagesToKeep.contains(currentImage)) {
+                deleteImage(currentImage);
             }
-            String imagePath = saveImage(image);
-            publication.setImage(imagePath);
         }
 
+        // ✅ Construire la nouvelle liste : images conservées + nouvelles
+        List<String> updatedImages = new ArrayList<>();
+        if (imagesToKeep != null) {
+            updatedImages.addAll(imagesToKeep);
+        }
+
+        // Ajouter les nouvelles images uploadées
+        if (newImages != null && !newImages.isEmpty()) {
+            int totalImages = updatedImages.size() + newImages.size();
+            if (totalImages > MAX_IMAGES) {
+                throw new IllegalArgumentException("Le total d'images ne peut pas dépasser " + MAX_IMAGES);
+            }
+            for (MultipartFile image : newImages) {
+                if (!image.isEmpty()) {
+                    String imageName = saveImage(image);
+                    updatedImages.add(imageName);
+                }
+            }
+        }
+
+        publication.setImages(updatedImages);
         return publicationRepository.save(publication);
     }
 
@@ -111,14 +148,25 @@ public class PublicationService {
             throw new RuntimeException("Vous n'êtes pas autorisé à supprimer cette publication");
         }
 
-        if (publication.getImage() != null) {
-            deleteImage(publication.getImage());
+        // ✅ Supprimer toutes les images associées
+        for (String imageName : publication.getImages()) {
+            deleteImage(imageName);
         }
 
         publicationRepository.delete(publication);
     }
 
     private String saveImage(MultipartFile image) throws IOException {
+        // Validation du type MIME
+        String contentType = image.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Fichier invalide : seules les images sont acceptées");
+        }
+        // Validation taille (5 MB)
+        if (image.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("L'image ne doit pas dépasser 5 MB");
+        }
+
         String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
         Path uploadPath = Paths.get(UPLOAD_DIR);
 
@@ -132,9 +180,9 @@ public class PublicationService {
         return fileName;
     }
 
-    private void deleteImage(String imagePath) {
+    private void deleteImage(String imageName) {
         try {
-            Path path = Paths.get(UPLOAD_DIR + imagePath);
+            Path path = Paths.get(UPLOAD_DIR + imageName);
             Files.deleteIfExists(path);
         } catch (IOException e) {
             System.err.println("Erreur lors de la suppression de l'image: " + e.getMessage());
