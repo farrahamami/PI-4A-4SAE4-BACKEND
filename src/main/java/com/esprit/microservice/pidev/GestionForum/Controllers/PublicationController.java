@@ -58,28 +58,28 @@ public class PublicationController {
         }
     }
 
-    // ✅ POST — accepte une liste de fichiers image (champ "images")
+    // ✅ POST — accepts images + PDFs
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createPublication(
             @RequestParam("titre") String titre,
             @RequestParam("contenue") String contenue,
             @RequestParam("type") TypePublication type,
             @RequestParam("userId") Integer userId,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "pdfs", required = false) List<MultipartFile> pdfs) {
         try {
-            Publication publication = publicationService.createPublication(titre, contenue, type, userId, images);
+            Publication publication = publicationService.createPublication(titre, contenue, type, userId, images, pdfs);
             return ResponseEntity.status(HttpStatus.CREATED).body(publication);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de la création de la publication");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating publication");
         }
     }
 
-    // ✅ PUT — accepte de nouvelles images + liste des images à conserver
+    // ✅ PUT — accepts new images/PDFs + lists of files to keep
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updatePublication(
             @PathVariable Integer id,
@@ -88,18 +88,19 @@ public class PublicationController {
             @RequestParam(value = "type", required = false) TypePublication type,
             @RequestParam("userId") Integer userId,
             @RequestParam(value = "images", required = false) List<MultipartFile> newImages,
-            @RequestParam(value = "imagesToKeep", required = false) List<String> imagesToKeep) {
+            @RequestParam(value = "imagesToKeep", required = false) List<String> imagesToKeep,
+            @RequestParam(value = "pdfs", required = false) List<MultipartFile> newPdfs,
+            @RequestParam(value = "pdfsToKeep", required = false) List<String> pdfsToKeep) {
         try {
             Publication publication = publicationService.updatePublication(
-                    id, titre, contenue, type, userId, newImages, imagesToKeep);
+                    id, titre, contenue, type, userId, newImages, imagesToKeep, newPdfs, pdfsToKeep);
             return ResponseEntity.ok(publication);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de la modification de la publication");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating publication");
         }
     }
 
@@ -108,12 +109,11 @@ public class PublicationController {
                                                @RequestParam("userId") Integer userId) {
         try {
             publicationService.deletePublication(id, userId);
-            return ResponseEntity.ok("Publication supprimée avec succès");
+            return ResponseEntity.ok("Publication deleted successfully");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de la suppression de la publication");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting publication");
         }
     }
 }

@@ -30,11 +30,17 @@ public class Publication {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String contenue;
 
-    // ✅ MULTI-IMAGES : liste de noms de fichiers séparés par des virgules
+    // ✅ MULTI-IMAGES
     @ElementCollection
     @CollectionTable(name = "publication_images", joinColumns = @JoinColumn(name = "publication_id"))
     @Column(name = "image_name")
     private List<String> images = new ArrayList<>();
+
+    // ✅ MULTI-PDFs
+    @ElementCollection
+    @CollectionTable(name = "publication_pdfs", joinColumns = @JoinColumn(name = "publication_id"))
+    @Column(name = "pdf_name")
+    private List<String> pdfs = new ArrayList<>();
 
     @Column(name = "create_at", nullable = false, updatable = false)
     private LocalDateTime createAt;
