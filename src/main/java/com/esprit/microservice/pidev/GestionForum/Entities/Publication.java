@@ -45,8 +45,7 @@ public class Publication {
     @Column(name = "create_at", nullable = false, updatable = false)
     private LocalDateTime createAt;
 
-    @Column(nullable = false)
-    private Integer likes = 0;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

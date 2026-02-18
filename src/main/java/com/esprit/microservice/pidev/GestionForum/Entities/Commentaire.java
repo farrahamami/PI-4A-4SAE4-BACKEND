@@ -29,9 +29,7 @@ public class Commentaire {
 
     @Column(name = "create_at", nullable = false, updatable = false)
     private LocalDateTime createAt;
-
-    @Column(nullable = false)
-    private Integer likes = 0;
+    
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
