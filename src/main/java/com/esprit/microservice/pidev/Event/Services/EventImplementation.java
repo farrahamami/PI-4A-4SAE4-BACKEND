@@ -1,7 +1,9 @@
 package com.esprit.microservice.pidev.Event.Services;
 
+import com.esprit.microservice.pidev.Event.DTOs.ActivityRequestDTO;
 import com.esprit.microservice.pidev.Event.DTOs.EventRequestDTO;
 import com.esprit.microservice.pidev.Event.DTOs.EventResponseDTO;
+import com.esprit.microservice.pidev.Event.Entities.Activity;
 import com.esprit.microservice.pidev.Event.Entities.Event;
 import com.esprit.microservice.pidev.Event.Entities.EventStatus;
 import com.esprit.microservice.pidev.Event.Repositories.EventRepository;
@@ -24,13 +26,17 @@ public class EventImplementation implements IEventService{
 
     @Override
     public EventResponseDTO addEvent(EventRequestDTO dto) {
+
+        System.out.println("Nombre d'activités reçues: " +
+                (dto.getActivities() != null ? dto.getActivities().size() : "NULL"));
+
         // Validation
         if (dto.getEndDate().isBefore(dto.getStartDate())) {
             throw new RuntimeException("La date de fin doit être après la date de début");
         }
 
         // Récupération de l'organisateur
-        User organizer = userRepository.findById(dto.getOrganizerId())
+        User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
         // Création de l'événement
@@ -43,13 +49,31 @@ public class EventImplementation implements IEventService{
         event.setCapacity(dto.getCapacity());
         event.setImageUrl(dto.getImageUrl());
         event.setCategory(dto.getCategory());
-        event.setOrganizer(organizer);
+        event.setUser(user);
         event.setCurrentParticipants(0);
         event.setEventStatus(EventStatus.PUBLISHED);
         event.setCreatedAt(LocalDateTime.now());
-        event.setUpdateddAt(LocalDateTime.now());
+        event.setUpdatedAt(LocalDateTime.now());
 
         Event saved = eventRepository.save(event);
+
+        if (dto.getActivities() != null && !dto.getActivities().isEmpty()) {
+            List<Activity> activities = dto.getActivities().stream().map(actDto -> {
+                Activity activity = new Activity();
+                activity.setName(actDto.getName());
+                activity.setDescription(actDto.getDescription());
+                activity.setRequirements(actDto.getRequirements());
+                activity.setMaxParticipants(actDto.getMaxParticipants());
+                activity.setEvent(saved); // ← utilise "saved" qui a déjà un ID
+                return activity;
+            }).collect(Collectors.toList());
+
+            saved.getActivities().clear();
+            saved.getActivities().addAll(activities);
+            eventRepository.save(saved); // ← sauvegarde avec les activités
+        }
+
+
         return mapToResponseDTO(saved);
     }
 
@@ -73,7 +97,25 @@ public class EventImplementation implements IEventService{
         event.setCapacity(dto.getCapacity());
         event.setImageUrl(dto.getImageUrl());
         event.setCategory(dto.getCategory());
-        event.setUpdateddAt(LocalDateTime.now());
+        event.setUpdatedAt(LocalDateTime.now());
+
+        if (dto.getActivities() != null) {
+            event.getActivities().clear(); // supprimer les anciennes activités
+
+            List<Activity> updatedActivities = dto.getActivities().stream().map(actDto -> {
+                Activity activity = new Activity();
+                activity.setIdActivity(actDto.getIdActivity()); // garde l'ID si existant
+                activity.setName(actDto.getName());
+                activity.setDescription(actDto.getDescription());
+                activity.setRequirements(actDto.getRequirements());
+                activity.setMaxParticipants(actDto.getMaxParticipants());
+                activity.setEvent(event);
+                return activity;
+            }).collect(Collectors.toList());
+
+            event.getActivities().addAll(updatedActivities);
+        }
+
 
         Event updated = eventRepository.save(event);
         return mapToResponseDTO(updated);
@@ -122,9 +164,22 @@ public class EventImplementation implements IEventService{
         dto.setCategory(event.getCategory());
         dto.setCreatedAt(event.getCreatedAt());
 
-        if (event.getOrganizer() != null) {
-            dto.setOrganizerId(event.getOrganizer().getId());
-            dto.setOrganizerName(event.getOrganizer().getName() + " " + event.getOrganizer().getLastName());
+        if (event.getUser() != null) {
+            dto.setUserId(event.getUser().getId());
+            dto.setUserName(event.getUser().getName() + " " + event.getUser().getLastName());
+        }
+
+        if (event.getActivities() != null) {
+            List<ActivityRequestDTO> actDtos = event.getActivities().stream().map(act -> {
+                ActivityRequestDTO actDto = new ActivityRequestDTO();
+                actDto.setIdActivity(act.getIdActivity());
+                actDto.setName(act.getName());
+                actDto.setDescription(act.getDescription());
+                actDto.setRequirements(act.getRequirements());
+                actDto.setMaxParticipants(act.getMaxParticipants());
+                return actDto;
+            }).collect(Collectors.toList());
+            dto.setActivities(actDtos);
         }
 
         return dto;

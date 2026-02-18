@@ -9,6 +9,6 @@ import java.util.List;
 @Repository
 
 public interface EventRepository extends JpaRepository<Event, Long>{
-    List<Event> findByOrganizer_Id(Integer organizerId);
+    List<Event> findByUser_Id(Integer userId);
 }
 

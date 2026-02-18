@@ -1,4 +1,4 @@
-package com.esprit.microservice.pidev.Activity.Services;
+package com.esprit.microservice.pidev.Event.Services;
 
 import com.esprit.microservice.pidev.Event.Entities.Activity;
 import java.util.List;

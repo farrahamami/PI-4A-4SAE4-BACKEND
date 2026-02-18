@@ -35,11 +35,11 @@ public class AuthService {
 
         String token = jwtService.generateToken(
                 user.getEmail(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getId()
         );
 
-        // Pass both token and role to the AuthResponse constructor
-        return new AuthResponse(token, user.getRole());
+        return new AuthResponse(token, user.getRole(), user.getId());
     }
 
 

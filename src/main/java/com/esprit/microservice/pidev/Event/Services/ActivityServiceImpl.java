@@ -1,6 +1,6 @@
-package com.esprit.microservice.pidev.Activity.Services;
+package com.esprit.microservice.pidev.Event.Services;
 
-import com.esprit.microservice.pidev.Activity.Repositories.ActivityRepository;
+import com.esprit.microservice.pidev.Event.Repositories.ActivityRepository;
 import com.esprit.microservice.pidev.Event.Entities.Activity;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -8,7 +8,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class ActivityServiceImpl implements IActivityService{
+public class ActivityServiceImpl implements IActivityService {
 
     private final ActivityRepository activityRepository;
 

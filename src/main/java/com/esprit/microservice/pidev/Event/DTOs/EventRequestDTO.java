@@ -4,6 +4,8 @@ import com.esprit.microservice.pidev.Event.Entities.CategoryEvent;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.util.List;
+
 import java.time.LocalDateTime;
 
 @Getter
@@ -37,7 +39,9 @@ public class EventRequestDTO {
     private CategoryEvent category;
 
     @NotNull(message = "L'organisateur est obligatoire")
-    private Integer organizerId;
+    private Integer userId;
+
+    private List<ActivityRequestDTO> activities;
 
 
 

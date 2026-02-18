@@ -28,7 +28,7 @@ public class Event {
     @Enumerated(EnumType.STRING)
     EventStatus eventStatus;
     LocalDateTime createdAt;
-    LocalDateTime updateddAt;
+    LocalDateTime updatedAt;
     String location;
     int capacity;
     int currentParticipants;
@@ -36,16 +36,16 @@ public class Event {
     @Enumerated(EnumType.STRING)
     CategoryEvent category;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
-    private List<com.esprit.microservice.pidev.Event.Entities.Activity> activities = new ArrayList<>();
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Activity> activities = new ArrayList<>();
 
     @OneToMany(mappedBy = "event")
     private List<EventRegistration> registrations = new ArrayList<>();
 
     // Dans Event
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organizer_id")
-    User organizer;
+    @JoinColumn(name = "user_id")
+    User user;
 
 
 

@@ -10,4 +10,5 @@ public enum CategoryEvent {
     HACKATHON,
     TRAINING,
     COMPETITION
+
 }

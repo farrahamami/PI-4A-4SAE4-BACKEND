@@ -1,6 +1,6 @@
-package com.esprit.microservice.pidev.Activity.Controllers;
+package com.esprit.microservice.pidev.Event.Controllers;
 
-import com.esprit.microservice.pidev.Activity.Services.IActivityService;
+import com.esprit.microservice.pidev.Event.Services.IActivityService;
 import com.esprit.microservice.pidev.Event.Entities.Activity;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/activities")
 @AllArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:4200")
 public class ActivityController {
 
     private final IActivityService activityService;

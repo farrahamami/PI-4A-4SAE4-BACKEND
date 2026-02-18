@@ -5,12 +5,13 @@ import com.esprit.microservice.pidev.Event.Entities.EventStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class EventResponseDTO {
+public class EventResponseDTO  {
 
     private Long idEvent;
     private String title;
@@ -23,7 +24,10 @@ public class EventResponseDTO {
     private Integer currentParticipants;
     private String imageUrl;
     private CategoryEvent category;
-    private Integer organizerId;
-    private String organizerName;
+    private Integer userId;
+    private String userName;
     private LocalDateTime createdAt;
+    private List<ActivityRequestDTO> activities;
+
+
 }

@@ -42,7 +42,7 @@ public class User {
     private List<EventRegistration> eventRegistrations = new ArrayList<>();
 
 
-    @OneToMany(mappedBy = "organizer")
+    @OneToMany(mappedBy = "user")
     private List<Event> organizedEvents = new ArrayList<>();
 
 
