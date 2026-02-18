@@ -154,6 +154,16 @@ public class PublicationService {
         publicationRepository.delete(publication);
     }
 
+
+    // ✅ ADMIN DELETE — bypasses userId check
+    public void adminDeletePublication(Integer id) {
+        Publication publication = getPublicationById(id);
+        for (String img : publication.getImages()) deleteFile(img);
+        for (String pdf : publication.getPdfs()) deleteFile(pdf);
+        publicationRepository.delete(publication);
+    }
+
+
     // ✅ Unified save: images and PDFs go to the same folder
     private String saveFile(MultipartFile file, boolean isPdf) throws IOException {
         String contentType = file.getContentType();

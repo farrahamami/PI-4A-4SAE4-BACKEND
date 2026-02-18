@@ -116,4 +116,18 @@ public class PublicationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting publication");
         }
     }
+
+
+    // ✅ ADMIN DELETE — no userId check
+    @DeleteMapping("/admin/{id}")
+    public ResponseEntity<?> adminDeletePublication(@PathVariable Integer id) {
+        try {
+            publicationService.adminDeletePublication(id);
+            return ResponseEntity.ok("Publication deleted successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting publication");
+        }
+    }
 }
