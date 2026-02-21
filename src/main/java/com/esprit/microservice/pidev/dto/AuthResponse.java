@@ -3,11 +3,13 @@ import com.esprit.microservice.pidev.Entities.Role;
 
 public class AuthResponse {
     private String token;
-    private Role role; // include role
+    private Role role;
+    private Integer id;
 
-    public AuthResponse(String token, Role role) {
+    public AuthResponse(String token, Role role, Integer id) {
         this.token = token;
         this.role = role;
+        this.id = id;
     }
 
     // getters and setters
@@ -16,4 +18,7 @@ public class AuthResponse {
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 }

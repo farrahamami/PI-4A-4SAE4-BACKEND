@@ -24,5 +24,18 @@ services:
     depends_on:
       - ads-db
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+    # Keep the model in memory for faster consecutive ads
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+
+
 volumes:
   ads_data:
+  ollama_storage:

@@ -22,6 +22,7 @@ public class AdCampaignService {
 
     private final AdCampaignRepository campaignRepository;
     private final AdPlanRepository planRepository;
+    private final OllamaModerationService moderationService;
 
     @Transactional
     public AdCampaign createCampaign(CreateCampaignRequest request, Long userId) {
@@ -60,6 +61,15 @@ public class AdCampaignService {
         try {
             AdCampaign savedCampaign = campaignRepository.save(campaign);
             log.info("Campaign created successfully with ID: {}", savedCampaign.getId());
+            
+            // Trigger async AI moderation (runs in background)
+            moderationService.moderateCampaignText(
+                savedCampaign.getId(),
+                savedCampaign.getTitle(),
+                savedCampaign.getDescription()
+            );
+            log.info("AI moderation initiated for campaign ID: {}", savedCampaign.getId());
+            
             return savedCampaign;
         } catch (DataIntegrityViolationException e) {
             log.error("Database integrity error while saving campaign: {}", e.getMessage(), e);
@@ -144,7 +154,17 @@ public class AdCampaignService {
         }
         campaign.setTargetId(request.getTargetId());
 
-        return campaignRepository.save(campaign);
+        AdCampaign updatedCampaign = campaignRepository.save(campaign);
+        
+        // Re-run AI moderation on updated content
+        moderationService.moderateCampaignText(
+            updatedCampaign.getId(),
+            updatedCampaign.getTitle(),
+            updatedCampaign.getDescription()
+        );
+        log.info("AI moderation re-initiated for updated campaign ID: {}", updatedCampaign.getId());
+        
+        return updatedCampaign;
     }
 
     private AdCampaign findById(Long id) {

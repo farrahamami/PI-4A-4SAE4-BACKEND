@@ -30,6 +30,9 @@ public class SecurityConfig {
                         // Permit all CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // Swagger UI
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+
                         // Public: GET plans and active campaigns
                         .requestMatchers(HttpMethod.GET, "/api/plans/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/campaigns/active").permitAll()
