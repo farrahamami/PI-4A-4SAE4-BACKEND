@@ -24,9 +24,15 @@ public class SecurityConfig {
                         // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Module Abonnement - Endpoints publics
+                        // Module Abonnement
                         .requestMatchers("/api/subscriptions/**").permitAll()
                         .requestMatchers("/api/user-subscriptions/**").permitAll()
+
+                        // Module Paiement
+                        .requestMatchers("/api/payments/**").permitAll()
+
+                        // Module Statistiques
+                        .requestMatchers("/api/stats/**").permitAll()
 
                         // Everything else
                         .anyRequest().authenticated()

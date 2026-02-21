@@ -60,7 +60,14 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
         userSubscription.setAutoRenew(request.getAutoRenew());
         userSubscription.setCurrentProjects(0);
         userSubscription.setCurrentProposals(0);
-        userSubscription.setAmountPaid(subscription.getPrice());
+
+        // ── MONTANT : prend le montant réellement payé (après promo) ou le prix normal ──
+        if (request.getAmountPaid() != null) {
+            userSubscription.setAmountPaid(request.getAmountPaid());
+        } else {
+            userSubscription.setAmountPaid(subscription.getPrice());
+        }
+
         userSubscription.setPaymentMethod(request.getPaymentMethod());
         userSubscription.setTransactionId(request.getTransactionId());
 
@@ -116,7 +123,6 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
         userSubscription.setAutoRenew(false);
 
         userSubscriptionRepository.save(userSubscription);
-
         log.info("Abonnement annulé avec succès pour l'utilisateur {}", userId);
     }
 
@@ -166,8 +172,6 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
 
         userSubscription.setAutoRenew(autoRenew);
         userSubscriptionRepository.save(userSubscription);
-
-        log.info("Renouvellement automatique modifié avec succès pour l'utilisateur {}", userId);
     }
 
     @Override
@@ -183,19 +187,17 @@ public class UserSubscriptionServiceImpl implements UserSubscriptionService {
                     renewSubscription(subscription.getUser().getId().longValue());
                     log.info("Abonnement renouvelé automatiquement pour l'utilisateur {}", subscription.getUser().getId());
                 } catch (Exception e) {
-                    log.error("Erreur lors du renouvellement automatique pour l'utilisateur {}: {}",
-                            subscription.getUser().getId(), e.getMessage());
+                    log.error("Erreur lors du renouvellement automatique: {}", e.getMessage());
                     subscription.setStatus(SubscriptionStatus.EXPIRED);
                     userSubscriptionRepository.save(subscription);
                 }
             } else {
                 subscription.setStatus(SubscriptionStatus.EXPIRED);
                 userSubscriptionRepository.save(subscription);
-                log.info("Abonnement marqué comme expiré pour l'utilisateur {}", subscription.getUser().getId());
             }
         }
 
-        log.info("Vérification des abonnements expirés terminée. {} abonnements traités", expiredSubscriptions.size());
+        log.info("{} abonnements traités", expiredSubscriptions.size());
     }
 
     @Override

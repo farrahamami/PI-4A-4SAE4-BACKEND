@@ -94,6 +94,14 @@
             <version>2.8.6</version>
         </dependency>
 
+        <!-- iText7 pour générer les factures PDF -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext7-core</artifactId>
+            <version>7.2.5</version>
+            <type>pom</type>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
