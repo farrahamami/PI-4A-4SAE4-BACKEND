@@ -1,5 +1,6 @@
 package com.esprit.microservice.adsservice.services;
 
+import com.esprit.microservice.adsservice.dto.ModerationResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -25,6 +26,53 @@ public class OllamaModerationService {
 
     @Value("${spring.ai.ollama.chat.options.model}")
     private String model;
+
+    /**
+     * Synchronous validation for frontend use
+     */
+    public ModerationResponse validateText(String title, String description) {
+        log.info("[AI VALIDATION] Synchronous validation requested for title: {}", title);
+
+        try {
+            String prompt = String.format(
+                "[INST] Task: Check if there is unsafe content in 'User' messages in accordance with the Llama Guard safety policy. \n " +
+                "<User>: TITLE: %s \n DESCRIPTION: %s \n [/INST]",
+                title != null ? title : "",
+                description != null ? description : ""
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> body = Map.of(
+                "model", model,
+                "prompt", prompt,
+                "stream", false
+            );
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> responseEntity = restTemplate.postForEntity(
+                    ollamaBaseUrl + "/api/generate", request, Map.class);
+
+            String response = (String) responseEntity.getBody().get("response");
+
+            log.info("[AI VALIDATION] Ollama response: {}", response);
+
+            if (response != null && response.toLowerCase().contains("unsafe")) {
+                String categoryCode = extractSafetyCode(response);
+                return new ModerationResponse(false, categoryCode != null ? categoryCode : "UNSAFE");
+            } else if (response != null && response.toLowerCase().contains("safe")) {
+                return new ModerationResponse(true, "SAFE");
+            } else {
+                log.warn("[AI VALIDATION] Unexpected response format: {}", response);
+                return new ModerationResponse(true, "UNKNOWN");
+            }
+
+        } catch (Exception e) {
+            log.error("[AI VALIDATION] Error during validation: {}", e.getMessage());
+            return new ModerationResponse(true, "ERROR");
+        }
+    }
 
     @Async
     public void moderateCampaignText(Long campaignId, String title, String description) {

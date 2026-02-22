@@ -33,9 +33,14 @@ public class SecurityConfig {
                         // Swagger UI
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
+                        // Public: AI endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/campaigns/validate").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/campaigns/generate-suggestion").permitAll()
+
                         // Public: GET plans and active campaigns
                         .requestMatchers(HttpMethod.GET, "/api/plans/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/campaigns/active").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/campaigns/{id}").permitAll()
 
                         // Admin-only endpoints
                         .requestMatchers("/api/campaigns/admin/**").hasRole("ADMIN")

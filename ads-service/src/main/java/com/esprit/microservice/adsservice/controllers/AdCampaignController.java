@@ -1,12 +1,12 @@
 package com.esprit.microservice.adsservice.controllers;
 
-import com.esprit.microservice.adsservice.dto.AdminActionRequest;
-import com.esprit.microservice.adsservice.dto.CampaignResponse;
-import com.esprit.microservice.adsservice.dto.CreateCampaignRequest;
+import com.esprit.microservice.adsservice.dto.*;
 import com.esprit.microservice.adsservice.entities.AdCampaign;
 import com.esprit.microservice.adsservice.entities.RoleType;
 import com.esprit.microservice.adsservice.security.SecurityUtils;
 import com.esprit.microservice.adsservice.services.AdCampaignService;
+import com.esprit.microservice.adsservice.services.GroqAiService;
+import com.esprit.microservice.adsservice.services.OllamaModerationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +24,8 @@ import java.util.List;
 public class AdCampaignController {
 
     private final AdCampaignService campaignService;
+    private final OllamaModerationService moderationService;
+    private final GroqAiService groqAiService;
 
     // ── Public: view active campaigns ──
     @GetMapping("/active")
@@ -31,6 +33,34 @@ public class AdCampaignController {
         List<CampaignResponse> campaigns = campaignService.getActiveCampaigns()
                 .stream().map(CampaignResponse::fromEntity).toList();
         return ResponseEntity.ok(campaigns);
+    }
+
+    // ── Public: view campaign details by ID ──
+    @GetMapping("/{id}")
+    public ResponseEntity<CampaignResponse> getCampaignById(@PathVariable Long id) {
+        AdCampaign campaign = campaignService.findById(id);
+        return ResponseEntity.ok(CampaignResponse.fromEntity(campaign));
+    }
+
+    // ── Public: AI content validation ──
+    @PostMapping("/validate")
+    public ResponseEntity<ModerationResponse> validateContent(
+            @Valid @RequestBody ValidationRequest request) {
+        log.info("[API] Validation request received for title: {}", request.getTitle());
+        ModerationResponse response = moderationService.validateText(
+                request.getTitle(), 
+                request.getDescription()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // ── Public: AI ad suggestion generation ──
+    @PostMapping("/generate-suggestion")
+    public ResponseEntity<AiSuggestionResponse> generateSuggestion(
+            @Valid @RequestBody GenerateSuggestionRequest request) {
+        log.info("[API] AI suggestion request received for prompt: {}", request.getPrompt());
+        AiSuggestionResponse response = groqAiService.generateAdSuggestion(request.getPrompt());
+        return ResponseEntity.ok(response);
     }
 
     // ── Authenticated: create a campaign ──

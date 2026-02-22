@@ -167,7 +167,7 @@ public class AdCampaignService {
         return updatedCampaign;
     }
 
-    private AdCampaign findById(Long id) {
+    public AdCampaign findById(Long id) {
         return campaignRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Campaign not found with id: " + id));
     }
