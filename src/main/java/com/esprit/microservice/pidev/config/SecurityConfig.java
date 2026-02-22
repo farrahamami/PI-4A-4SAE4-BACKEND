@@ -34,6 +34,9 @@ public class SecurityConfig {
                         // Module Statistiques
                         .requestMatchers("/api/stats/**").permitAll()
 
+                        // ✅ ADD THIS — AI Churn Prediction
+                        .requestMatchers("/api/churn-prediction/**").permitAll()
+
                         // Everything else
                         .anyRequest().authenticated()
                 )
