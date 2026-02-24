@@ -40,7 +40,9 @@ public class SecurityConfig {
                                 "/api/users/**",
                                 "/api/forum/**",
                                 "/api/events/**",
-                                "/api/activities/**"
+                                "/api/activities/**",
+                                "/api/inscriptions/**"
+
 
                         ).permitAll()
 

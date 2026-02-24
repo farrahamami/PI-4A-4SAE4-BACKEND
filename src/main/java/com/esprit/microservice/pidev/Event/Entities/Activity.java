@@ -21,7 +21,7 @@ public class Activity {
     String name;
     String description;
     String requirements;
-    Integer maxParticipants;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)

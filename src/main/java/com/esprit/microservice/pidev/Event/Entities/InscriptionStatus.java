@@ -1,7 +1,8 @@
 package com.esprit.microservice.pidev.Event.Entities;
 
-public enum RegistrationStatus {
+public enum InscriptionStatus {
+
     PENDING,
-    CONFIRMED,
-    CANCELLED
+    ACCEPTED,
+    REJECTED,
 }
