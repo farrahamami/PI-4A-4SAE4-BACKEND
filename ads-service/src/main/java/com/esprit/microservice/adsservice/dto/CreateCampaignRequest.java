@@ -26,4 +26,6 @@ public class CreateCampaignRequest {
     private String roleType;
 
     private Long targetId;
+
+    private Boolean usedAiSuggestion;
 }

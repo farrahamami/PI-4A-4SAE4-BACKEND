@@ -1,4 +1,5 @@
 services:
+  # --- PRIMARY DATA STACK ---
   ads-db:
     image: postgres:15-alpine
     container_name: ads-postgres
@@ -31,11 +32,88 @@ services:
       - "11434:11434"
     volumes:
       - ollama_storage:/root/.ollama
-    # Keep the model in memory for faster consecutive ads
     environment:
       - OLLAMA_KEEP_ALIVE=24h
 
+  # --- STREAMING STACK (KAFKA KRaft - No Zookeeper) ---
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      # KRaft Specific Settings
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      # Listeners
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      # Cluster ID (Generated or static for dev)
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      # Misc
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+      - DYNAMIC_CONFIG_ENABLED=true
+
+  # --- ANALYTICS STACK (CLICKHOUSE) ---
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-server
+    ports:
+      - "8123:8123" # HTTP API
+      - "9005:9000" # Native Client (Changed to avoid conflict)
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # --- QUALITY STACK (SONARQUBE) ---
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    depends_on:
+      - sonar-db
+    ports:
+      - "9001:9000" # Sonar Web UI
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonar
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+
+  sonar-db:
+    image: postgres:15-alpine
+    container_name: sonar-postgres
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonar
+    ports:
+      - "5433:5432" # Changed to avoid ads-db conflict
+    volumes:
+      - sonar_data:/var/lib/postgresql/data
 
 volumes:
   ads_data:
   ollama_storage:
+  clickhouse_data:
+  sonar_data:

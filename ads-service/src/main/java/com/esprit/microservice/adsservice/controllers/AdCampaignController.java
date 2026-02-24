@@ -47,9 +47,13 @@ public class AdCampaignController {
     public ResponseEntity<ModerationResponse> validateContent(
             @Valid @RequestBody ValidationRequest request) {
         log.info("[API] Validation request received for title: {}", request.getTitle());
+        
+        Long userId = SecurityUtils.getCurrentUserId();
+        
         ModerationResponse response = moderationService.validateText(
                 request.getTitle(), 
-                request.getDescription()
+                request.getDescription(),
+                userId
         );
         return ResponseEntity.ok(response);
     }

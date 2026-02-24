@@ -26,7 +26,7 @@ public class GroqAiService {
         log.info("[GROQ AI] Generating ad suggestion for prompt: {}", userPrompt);
 
         try {
-            String systemPrompt = "You are an expert ad copywriter. Generate a catchy ad title (max 80 chars) and " +
+            String systemPrompt = "You are an expert ad copywriter. Generate a catchy ad title (max 120 chars) and " +
                     "a short ad description (max 500 chars) based on the user's prompt. " +
                     "Respond ONLY in this exact JSON format: {\"title\": \"...\", \"description\": \"...\"}";
 

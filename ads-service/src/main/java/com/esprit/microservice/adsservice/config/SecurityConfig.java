@@ -36,6 +36,9 @@ public class SecurityConfig {
                         // Public: AI endpoints
                         .requestMatchers(HttpMethod.POST, "/api/campaigns/validate").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/campaigns/generate-suggestion").permitAll()
+                        
+                        // Public: Event tracking
+                        .requestMatchers(HttpMethod.POST, "/api/ads/events").permitAll()
 
                         // Public: GET plans and active campaigns
                         .requestMatchers(HttpMethod.GET, "/api/plans/**").permitAll()

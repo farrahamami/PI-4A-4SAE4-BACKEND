@@ -1,9 +1,11 @@
 package com.esprit.microservice.adsservice.services;
 
+import com.esprit.microservice.adsservice.dto.AdEvent;
 import com.esprit.microservice.adsservice.dto.CreateCampaignRequest;
 import com.esprit.microservice.adsservice.entities.*;
 import com.esprit.microservice.adsservice.exception.BadRequestException;
 import com.esprit.microservice.adsservice.exception.ResourceNotFoundException;
+import com.esprit.microservice.adsservice.kafka.KafkaProducerService;
 import com.esprit.microservice.adsservice.repositories.AdCampaignRepository;
 import com.esprit.microservice.adsservice.repositories.AdPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class AdCampaignService {
     private final AdCampaignRepository campaignRepository;
     private final AdPlanRepository planRepository;
     private final OllamaModerationService moderationService;
+    private final KafkaProducerService kafkaProducerService;
 
     @Transactional
     public AdCampaign createCampaign(CreateCampaignRequest request, Long userId) {
@@ -62,11 +65,29 @@ public class AdCampaignService {
             AdCampaign savedCampaign = campaignRepository.save(campaign);
             log.info("Campaign created successfully with ID: {}", savedCampaign.getId());
             
+            // Send CREATION event to Kafka
+            AdEvent.CreatedBy createdBy = Boolean.TRUE.equals(request.getUsedAiSuggestion()) 
+                ? AdEvent.CreatedBy.AI 
+                : AdEvent.CreatedBy.HUMAN;
+            
+            AdEvent creationEvent = AdEvent.builder()
+                .adId(savedCampaign.getId())
+                .type(AdEvent.EventType.CREATION)
+                .createdBy(createdBy)
+                .userId(userId)
+                .timestamp(LocalDateTime.now())
+                .build();
+            
+            kafkaProducerService.sendAdEvent(creationEvent);
+            log.info("CREATION event sent to Kafka for campaign ID: {} (createdBy: {})", 
+                    savedCampaign.getId(), createdBy);
+            
             // Trigger async AI moderation (runs in background)
             moderationService.moderateCampaignText(
                 savedCampaign.getId(),
                 savedCampaign.getTitle(),
-                savedCampaign.getDescription()
+                savedCampaign.getDescription(),
+                userId
             );
             log.info("AI moderation initiated for campaign ID: {}", savedCampaign.getId());
             
@@ -160,7 +181,8 @@ public class AdCampaignService {
         moderationService.moderateCampaignText(
             updatedCampaign.getId(),
             updatedCampaign.getTitle(),
-            updatedCampaign.getDescription()
+            updatedCampaign.getDescription(),
+            userId
         );
         log.info("AI moderation re-initiated for updated campaign ID: {}", updatedCampaign.getId());
         

@@ -25,4 +25,20 @@ public class SecurityUtils {
                 details != null ? details.getClass().getName() : "null");
         return null;
     }
+
+    public static String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof String) {
+            return (String) principal;
+        }
+        
+        return null;
+    }
 }

@@ -1,6 +1,9 @@
 package com.esprit.microservice.adsservice.services;
 
 import com.esprit.microservice.adsservice.dto.ModerationResponse;
+import com.esprit.microservice.adsservice.kafka.KafkaProducerService;
+import com.esprit.microservice.adsservice.kafka.ViolationTracker;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -16,9 +19,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class OllamaModerationService {
 
+    private final KafkaProducerService kafkaProducerService;
+    private final ViolationTracker violationTracker;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${spring.ai.ollama.base-url}")
@@ -28,9 +34,16 @@ public class OllamaModerationService {
     private String model;
 
     /**
-     * Synchronous validation for frontend use
+     * Synchronous validation for frontend use (without Kafka tracking)
      */
     public ModerationResponse validateText(String title, String description) {
+        return validateText(title, description, null);
+    }
+
+    /**
+     * Synchronous validation with Kafka tracking and violation monitoring
+     */
+    public ModerationResponse validateText(String title, String description, Long userId) {
         log.info("[AI VALIDATION] Synchronous validation requested for title: {}", title);
 
         try {
@@ -60,9 +73,44 @@ public class OllamaModerationService {
 
             if (response != null && response.toLowerCase().contains("unsafe")) {
                 String categoryCode = extractSafetyCode(response);
+                
+                if (userId != null) {
+                    String userEmail = com.esprit.microservice.adsservice.security.SecurityUtils.getCurrentUserEmail();
+                    log.warn("AI VALIDATION: Unsafe content detected during validation test by user {} ({})", userEmail, userId);
+                    
+                    kafkaProducerService.sendModerationLog(
+                        0L,
+                        userId,
+                        userEmail,
+                        title,
+                        description,
+                        "Unsafe content in validation test",
+                        categoryCode != null ? categoryCode : "UNSAFE"
+                    );
+                    
+                    violationTracker.trackViolation(userId, userEmail);
+                }
+                
                 return new ModerationResponse(false, categoryCode != null ? categoryCode : "UNSAFE");
+                
             } else if (response != null && response.toLowerCase().contains("safe")) {
+                if (userId != null) {
+                    String userEmail = com.esprit.microservice.adsservice.security.SecurityUtils.getCurrentUserEmail();
+                    log.info("AI VALIDATION: Safe content in validation test by user {} ({})", userEmail, userId);
+                    
+                    kafkaProducerService.sendModerationLog(
+                        0L,
+                        userId,
+                        userEmail,
+                        title,
+                        description,
+                        "Safe content in validation test",
+                        "SAFE"
+                    );
+                }
+                
                 return new ModerationResponse(true, "SAFE");
+                
             } else {
                 log.warn("[AI VALIDATION] Unexpected response format: {}", response);
                 return new ModerationResponse(true, "UNKNOWN");
@@ -75,7 +123,7 @@ public class OllamaModerationService {
     }
 
     @Async
-    public void moderateCampaignText(Long campaignId, String title, String description) {
+    public void moderateCampaignText(Long campaignId, String title, String description, Long userId) {
         log.info("[AI MONITOR] Starting analysis for Ad: {}", title);
 
         try {
@@ -110,8 +158,30 @@ public class OllamaModerationService {
                 log.warn("⚠️ AI SHADOW MODERATION WARNING: Ad ID {} contains potentially unsafe content. Category: {}",
                         campaignId, category != null ? category : response.trim());
 
+                kafkaProducerService.sendModerationLog(
+                    campaignId, 
+                    userId,
+                    "user-" + userId + "@system.local",
+                    title,
+                    description,
+                    "Unsafe content detected", 
+                    category != null ? category : "UNSAFE"
+                );
+
+                violationTracker.trackViolation(userId, "user-" + userId + "@system.local");
+
             } else if (response != null && response.toLowerCase().contains("safe")) {
-                log.info("✅ AI SHADOW MODERATION: Ad ID {} passed scan.", campaignId);
+                log.info("✅ AI SHADOW MODERATION: Ad ID {} passed scan. SAFE AD", campaignId);
+
+                kafkaProducerService.sendModerationLog(
+                    campaignId,
+                    userId,
+                    "user-" + userId + "@system.local",
+                    title,
+                    description,
+                    "Content approved",
+                    "SAFE"
+                );
 
             } else {
                 log.warn("[AI MONITOR] Unexpected response format for Ad ID {}: {}", campaignId, response);
