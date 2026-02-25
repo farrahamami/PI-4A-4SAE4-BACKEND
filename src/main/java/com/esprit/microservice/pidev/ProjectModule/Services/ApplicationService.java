@@ -1,6 +1,5 @@
 package com.esprit.microservice.pidev.ProjectModule.Services;
 
-
 import com.esprit.microservice.pidev.Entities.User;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.Application;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.FreelancerSkill;
@@ -41,15 +40,25 @@ public class ApplicationService {
     @Value("${file.upload-dir:uploads/}")
     private String uploadDir;
 
-    // ─── Soumettre une application ─────────────────────────────────────
-
     /**
-     * Crée une application pour un freelancer sur un projet.
-     * Vérifie qu'il n'a pas déjà appliqué au même projet.
+     * Retourne le chemin ABSOLU du dossier uploads.
+     * Utilise le répertoire de travail réel de Spring Boot (user.dir)
+     * pour être cohérent sur Windows/Mac/Linux.
      */
+    private Path getUploadRootPath() {
+        // Si uploadDir est déjà absolu (ex: C:/mon/chemin/uploads/) → on l'utilise tel quel
+        // Si relatif (ex: uploads/) → on le résout depuis user.dir (= racine du projet)
+        Path p = Paths.get(uploadDir);
+        if (p.isAbsolute()) {
+            return p.normalize();
+        }
+        return Paths.get(System.getProperty("user.dir"), uploadDir).normalize();
+    }
+
+    // ─── Soumettre une application ──────────────────────────────────────
+
     public Application submitApplication(Integer freelancerId, Integer projectId, String coverLetterUrl) {
 
-        // Vérifier doublon
         if (applicationRepository.findByFreelancerIdAndProjectId(freelancerId, projectId).isPresent()) {
             throw new RuntimeException("Tu as déjà appliqué à ce projet.");
         }
@@ -72,34 +81,29 @@ public class ApplicationService {
 
     // ─── Upload lettre de motivation PDF ──────────────────────────────
 
-    /**
-     * Upload d'un PDF de lettre de motivation depuis le PC du freelancer.
-     * Retourne l'URL du fichier sauvegardé.
-     */
     public String uploadCoverLetter(Integer freelancerId, MultipartFile file) throws IOException {
         String originalName = file.getOriginalFilename();
         if (originalName == null || !originalName.toLowerCase().endsWith(".pdf")) {
             throw new IllegalArgumentException("Seuls les fichiers PDF sont acceptés.");
         }
 
-        Path dirPath = Paths.get(uploadDir + "cover-letters/");
+        // Chemin absolu garanti
+        Path dirPath = getUploadRootPath().resolve("cover-letters");
         Files.createDirectories(dirPath);
+
+        System.out.println(">>> uploadCoverLetter saving to: " + dirPath.toAbsolutePath());
 
         String fileName = "cover_" + freelancerId + "_" + UUID.randomUUID() + ".pdf";
         Path filePath = dirPath.resolve(fileName);
         Files.write(filePath, file.getBytes());
+
+        System.out.println(">>> File saved: " + filePath.toAbsolutePath());
 
         return "/uploads/cover-letters/" + fileName;
     }
 
     // ─── Générer lettre de motivation depuis le CV ─────────────────────
 
-    /**
-     * Génère un PDF de lettre de motivation automatiquement
-     * en utilisant les skills du freelancer et les infos du projet.
-     * Utilise OpenPDF (com.github.librepdf:openpdf).
-     * Retourne l'URL du PDF généré.
-     */
     public String generateCoverLetter(Integer freelancerId, Integer projectId) throws IOException {
 
         User freelancer = userRepository.findById(freelancerId)
@@ -110,49 +114,40 @@ public class ApplicationService {
 
         List<FreelancerSkill> skills = skillRepository.findByFreelancerId(freelancerId);
 
-        // Préparer le dossier de sortie
-        Path dirPath = Paths.get(uploadDir + "cover-letters/");
+        // Chemin absolu garanti
+        Path dirPath = getUploadRootPath().resolve("cover-letters");
         Files.createDirectories(dirPath);
 
         String fileName = "cover_generated_" + freelancerId + "_" + UUID.randomUUID() + ".pdf";
-        String filePath = dirPath.resolve(fileName).toString();
+        Path filePath = dirPath.resolve(fileName);
+
+        System.out.println(">>> generateCoverLetter saving to: " + filePath.toAbsolutePath());
 
         // ── Génération PDF avec OpenPDF ──
         Document document = new Document(PageSize.A4, 60, 60, 80, 80);
-        PdfWriter.getInstance(document, new FileOutputStream(filePath));
+        PdfWriter.getInstance(document, new FileOutputStream(filePath.toFile()));
         document.open();
 
-        // Police titre
-        Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, new Color(30, 90, 160));
-        // Police normale
-        Font normalFont = new Font(Font.HELVETICA, 11, Font.NORMAL, Color.DARK_GRAY);
-        // Police bold
-        Font boldFont = new Font(Font.HELVETICA, 11, Font.BOLD, Color.DARK_GRAY);
-        // Police sous-titre
-        Font subFont = new Font(Font.HELVETICA, 13, Font.BOLD, new Color(50, 50, 50));
+        Font titleFont  = new Font(Font.HELVETICA, 18, Font.BOLD,   new Color(30, 90, 160));
+        Font normalFont = new Font(Font.HELVETICA, 11, Font.NORMAL,  Color.DARK_GRAY);
+        Font boldFont   = new Font(Font.HELVETICA, 11, Font.BOLD,    Color.DARK_GRAY);
+        Font subFont    = new Font(Font.HELVETICA, 13, Font.BOLD,    new Color(50, 50, 50));
 
-        // ── En-tête ──
-        Paragraph header = new Paragraph(
-                freelancer.getName() + " " + freelancer.getLastName(), titleFont);
+        Paragraph header = new Paragraph(freelancer.getName() + " " + freelancer.getLastName(), titleFont);
         header.setAlignment(Element.ALIGN_LEFT);
         document.add(header);
-
         document.add(new Paragraph(freelancer.getEmail(), normalFont));
         document.add(new Paragraph(LocalDate.now().toString(), normalFont));
         document.add(Chunk.NEWLINE);
-
-        // ── Séparateur ──
         document.add(new Paragraph("─────────────────────────────────────────────", normalFont));
         document.add(Chunk.NEWLINE);
 
-        // ── Objet ──
         Paragraph objet = new Paragraph();
         objet.add(new Chunk("Objet : ", boldFont));
         objet.add(new Chunk("Candidature pour le projet « " + project.getTitle() + " »", normalFont));
         document.add(objet);
         document.add(Chunk.NEWLINE);
 
-        // ── Corps ──
         document.add(new Paragraph("Madame, Monsieur,", normalFont));
         document.add(Chunk.NEWLINE);
 
@@ -163,11 +158,9 @@ public class ApplicationService {
         document.add(new Paragraph(intro, normalFont));
         document.add(Chunk.NEWLINE);
 
-        // ── Compétences ──
         if (!skills.isEmpty()) {
             document.add(new Paragraph("Mes compétences clés :", subFont));
             document.add(Chunk.NEWLINE);
-
             for (FreelancerSkill skill : skills) {
                 String line = "• " + skill.getSkillName()
                         + " — Niveau : " + (skill.getLevel() != null ? skill.getLevel().toString() : "N/A")
@@ -178,7 +171,6 @@ public class ApplicationService {
             document.add(Chunk.NEWLINE);
         }
 
-        // ── Description projet ──
         if (project.getDescription() != null) {
             String projectParagraph = "Votre projet correspond parfaitement à mes domaines d'expertise. "
                     + "Je suis particulièrement motivé(e) par : " + project.getDescription();
@@ -186,13 +178,11 @@ public class ApplicationService {
             document.add(Chunk.NEWLINE);
         }
 
-        // ── Conclusion ──
         String conclusion = "Je reste disponible pour tout entretien ou échange complémentaire. "
                 + "Dans l'attente de votre retour, je vous adresse mes cordiales salutations.";
         document.add(new Paragraph(conclusion, normalFont));
         document.add(Chunk.NEWLINE);
         document.add(Chunk.NEWLINE);
-
         document.add(new Paragraph(freelancer.getName() + " " + freelancer.getLastName(), boldFont));
 
         document.close();
@@ -200,7 +190,7 @@ public class ApplicationService {
         return "/uploads/cover-letters/" + fileName;
     }
 
-    // ─── Lectures ──────────────────────────────────────────────────────
+    // ─── Lectures ─────────────────────────────────────────────────────
 
     public List<Application> getByFreelancer(Integer freelancerId) {
         return applicationRepository.findByFreelancerId(freelancerId);
@@ -217,8 +207,6 @@ public class ApplicationService {
     public Optional<Application> getById(Integer id) {
         return applicationRepository.findById(id);
     }
-
-    // ─── Mise à jour statut (côté client) ─────────────────────────────
 
     public Application updateStatus(Integer applicationId, ApplicationStatus status) {
         Application app = applicationRepository.findById(applicationId)

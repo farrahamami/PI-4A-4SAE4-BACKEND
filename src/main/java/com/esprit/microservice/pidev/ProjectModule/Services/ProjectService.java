@@ -4,6 +4,7 @@ import com.esprit.microservice.pidev.ProjectModule.DTOs.ProjectRequestDTO;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.FreelancerSkill;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.Project;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.Task;
+import com.esprit.microservice.pidev.ProjectModule.Repositories.ApplicationRepository;
 import com.esprit.microservice.pidev.ProjectModule.Repositories.FreelancerSkillRepository;
 import com.esprit.microservice.pidev.ProjectModule.Repositories.ProjectRepository;
 import com.esprit.microservice.pidev.ProjectModule.Repositories.TaskRepository;
@@ -22,6 +23,9 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final FreelancerSkillRepository skillRepository;
     private final TaskRepository taskRepository;
+    private final ApplicationRepository applicationRepository;
+
+
 
     /**
      * Créer un nouveau projet avec ses tasks
@@ -138,6 +142,11 @@ public class ProjectService {
      * Supprimer un projet (supprime aussi les tasks associées via CASCADE)
      */
     public void deleteProject(Integer id) {
+        // Vérifier AVANT de supprimer si des applications existent
+        boolean hasApplications = !applicationRepository.findByProjectId(id).isEmpty();
+        if (hasApplications) {
+            throw new RuntimeException("FREELANCER_APPLIED");
+        }
         projectRepository.deleteById(id);
     }
 }

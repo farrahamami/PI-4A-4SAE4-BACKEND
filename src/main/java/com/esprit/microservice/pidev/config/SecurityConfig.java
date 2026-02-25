@@ -21,12 +21,14 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/api/projects/**",
                                 "/api/skills/**",
-                                "/api/applications/**"
+                                "/api/applications/**",
+                                "/api/applications/cover-letter/**"
                         ).permitAll()
 
                         // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-
+                        // DOIT être en permitAll sinon Spring Security bloque le PDF
+                        .requestMatchers("/uploads/**").permitAll()
                         // Public modules
                         .requestMatchers(
                                 "/api/subscriptions/**",
@@ -35,7 +37,9 @@ public class SecurityConfig {
                                 "/api/evenements/**",
                                 "/api/forum/**",
                                 "/api/projects/**",
-                                "/api/skills/**"
+                                "/api/skills/**",
+                                "/api/applications/**",
+                                "/api/applications/cover-letter/**"
                         ).permitAll()
 
                         // Everything else requires authentication
