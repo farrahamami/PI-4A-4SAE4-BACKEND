@@ -27,15 +27,14 @@ public class FreelancerSkill {
     String skillName;
 
 
-    String description;
+
 
     @Enumerated(EnumType.STRING)
     SkillLevel level;
 
     Integer yearsExperience;
 
-    @Enumerated(EnumType.STRING)
-    Availability availability;
+
 
     String resumeUrl;
 

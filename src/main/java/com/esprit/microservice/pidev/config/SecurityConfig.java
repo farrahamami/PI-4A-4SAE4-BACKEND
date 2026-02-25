@@ -20,7 +20,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/webjars/**",
                                 "/api/projects/**",
-                                "/api/skills/**"
+                                "/api/skills/**",
+                                "/api/applications/**"
                         ).permitAll()
 
                         // Auth endpoints

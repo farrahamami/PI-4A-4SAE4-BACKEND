@@ -2,12 +2,12 @@ package com.esprit.microservice.pidev.ProjectModule.Controllers;
 
 import com.esprit.microservice.pidev.ProjectModule.DTOs.ProjectRequestDTO;
 import com.esprit.microservice.pidev.ProjectModule.Domain.Entities.Project;
+import com.esprit.microservice.pidev.ProjectModule.Repositories.ProjectRepository;
 import com.esprit.microservice.pidev.ProjectModule.Services.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +17,7 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class ProjectController {
     private final ProjectService projectService;
+    private final ProjectRepository projectRepository;
 
     /**
      * Créer un nouveau projet
