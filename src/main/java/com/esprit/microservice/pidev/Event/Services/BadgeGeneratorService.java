@@ -105,7 +105,7 @@ public class BadgeGeneratorService {
             g2d.setFont(new Font("Arial", Font.BOLD, 13));
             g2d.fillRoundRect(30, 340, 150, 30, 15, 15);
             g2d.setColor(Color.WHITE);
-            drawStringAt(g2d, inscription.getDemaine().toString(), 105, 360);
+            drawStringAt(g2d, inscription.getDomaine().toString(), 105, 360);
 
             g2d.dispose();
 

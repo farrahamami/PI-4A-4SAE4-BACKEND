@@ -12,7 +12,15 @@ public interface IEventService {
     EventResponseDTO updateEvent(Long idEvent, EventRequestDTO eventRequestDTO);
     EventResponseDTO getEventById(Long idEvent);
     List<EventResponseDTO> getAllEvents();
-    void deleteEvent(Long idEvent);
+
 
     PageResponseDTO<EventResponseDTO> filterEvents(EventFilterDTO filter);
+
+    void geocodeAllExistingEvents();
+
+    void archiveEvent(Long idEvent);
+    List<EventResponseDTO> getArchivedEvents();
+    void restoreEvent(Long idEvent);
+
+
 }

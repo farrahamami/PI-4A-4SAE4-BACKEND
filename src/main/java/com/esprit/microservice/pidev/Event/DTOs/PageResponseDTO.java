@@ -23,6 +23,7 @@ public class PageResponseDTO<T> {
     private boolean hasNext;
     private boolean hasPrevious;
 
+
     // ── Infos tri actif ──
     private String sortBy;
     private String sortDir;

@@ -9,10 +9,13 @@ import com.esprit.microservice.pidev.Event.Entities.Activity;
 import com.esprit.microservice.pidev.Event.Entities.Event;
 import com.esprit.microservice.pidev.Event.Entities.EventStatus;
 import com.esprit.microservice.pidev.Event.Repositories.EventRepository;
+import com.esprit.microservice.pidev.Event.Repositories.InscriptionRepository;
+import com.esprit.microservice.pidev.Event.Entities.InscriptionStatus;
 import com.esprit.microservice.pidev.Event.Specifications.EventSpecification;
 import com.esprit.microservice.pidev.Entities.User;
 import com.esprit.microservice.pidev.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,8 +32,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventImplementation implements IEventService {
 
+    @Autowired
     private final EventRepository eventRepository;
-    private final UserRepository  userRepository;
+    @Autowired
+    private final UserRepository userRepository;
+    @Autowired
+    private final InscriptionRepository inscriptionRepository;
+    @Autowired
+    private GeocodingService geocodingService;
 
     // Champs autorisés pour le tri (sécurité anti-injection)
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
@@ -39,7 +48,7 @@ public class EventImplementation implements IEventService {
     );
 
     // ══════════════════════════════════════════════════
-    //  CRUD EXISTANT (inchangé)
+    //  CRUD
     // ══════════════════════════════════════════════════
 
     @Override
@@ -69,6 +78,18 @@ public class EventImplementation implements IEventService {
         event.setEventStatus(EventStatus.PUBLISHED);
         event.setCreatedAt(LocalDateTime.now());
         event.setUpdatedAt(LocalDateTime.now());
+
+        // ── GÉOCODAGE AUTOMATIQUE lors de la création ──
+        if (dto.getLocation() != null && !dto.getLocation().isBlank()) {
+            double[] coords = geocodingService.geocodeAddress(dto.getLocation());
+            if (coords != null) {
+                event.setLatitude(coords[0]);
+                event.setLongitude(coords[1]);
+                System.out.println("Géocodage réussi pour [" + dto.getLocation() + "] → " + coords[0] + ", " + coords[1]);
+            } else {
+                System.out.println("Géocodage échoué pour : " + dto.getLocation());
+            }
+        }
 
         Event saved = eventRepository.save(event);
 
@@ -103,11 +124,26 @@ public class EventImplementation implements IEventService {
         event.setDescription(dto.getDescription());
         event.setStartDate(dto.getStartDate());
         event.setEndDate(dto.getEndDate());
-        event.setLocation(dto.getLocation());
         event.setCapacity(dto.getCapacity());
         event.setImageUrl(dto.getImageUrl());
         event.setCategory(dto.getCategory());
         event.setUpdatedAt(LocalDateTime.now());
+
+        // ── GÉOCODAGE AUTOMATIQUE lors de la mise à jour ──
+        // Re-géocoder uniquement si la location a changé
+        if (dto.getLocation() != null && !dto.getLocation().isBlank()) {
+            boolean locationChanged = !dto.getLocation().equals(event.getLocation());
+            event.setLocation(dto.getLocation());
+
+            if (locationChanged || event.getLatitude() == null || event.getLongitude() == null) {
+                double[] coords = geocodingService.geocodeAddress(dto.getLocation());
+                if (coords != null) {
+                    event.setLatitude(coords[0]);
+                    event.setLongitude(coords[1]);
+                    System.out.println("Géocodage mis à jour pour [" + dto.getLocation() + "] → " + coords[0] + ", " + coords[1]);
+                }
+            }
+        }
 
         if (dto.getActivities() != null) {
             event.getActivities().clear();
@@ -134,27 +170,76 @@ public class EventImplementation implements IEventService {
         return mapToResponseDTO(event);
     }
 
+    // ── MODIFIER getAllEvents pour exclure les archivés ──
     @Override
     public List<EventResponseDTO> getAllEvents() {
-        return eventRepository.findAll()
+        return eventRepository.findByArchivedFalse()
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public void deleteEvent(Long idEvent) {
+    public void archiveEvent(Long idEvent) {
         Event event = eventRepository.findById(idEvent)
                 .orElseThrow(() -> new RuntimeException("Événement non trouvé"));
+        event.setArchived(true);
+        event.setUpdatedAt(LocalDateTime.now());
+        eventRepository.save(event);
+    }
 
-        if (event.getCurrentParticipants() > 0) {
-            throw new RuntimeException("Impossible de supprimer un événement avec des participants");
-        }
-        eventRepository.delete(event);
+    @Override
+    public List<EventResponseDTO> getArchivedEvents() {
+        return eventRepository.findByArchivedTrue()
+                .stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void restoreEvent(Long idEvent) {
+        Event event = eventRepository.findById(idEvent)
+                .orElseThrow(() -> new RuntimeException("Événement non trouvé"));
+        event.setArchived(false);
+        event.setUpdatedAt(LocalDateTime.now());
+        eventRepository.save(event);
     }
 
     // ══════════════════════════════════════════════════
-    //  NOUVEAU : FILTRAGE AVANCÉ + PAGINATION
+    //  GÉOCODAGE DES ÉVÉNEMENTS EXISTANTS (admin)
+    // ══════════════════════════════════════════════════
+
+    @Override
+    public void geocodeAllExistingEvents() {
+        List<Event> events = eventRepository.findByLatitudeIsNull();
+        System.out.println("Géocodage de " + events.size() + " événements sans coordonnées...");
+
+        for (Event event : events) {
+            if (event.getLocation() != null && !event.getLocation().isBlank()) {
+                double[] coords = geocodingService.geocodeAddress(event.getLocation());
+                if (coords != null) {
+                    event.setLatitude(coords[0]);
+                    event.setLongitude(coords[1]);
+                    eventRepository.save(event);
+                    System.out.println("✓ [" + event.getTitle() + "] → " + coords[0] + ", " + coords[1]);
+                } else {
+                    System.out.println("✗ Échec pour : " + event.getLocation());
+                }
+                // Respecter le rate limit Nominatim (max 1 req/sec)
+                try {
+                    Thread.sleep(1100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.err.println("Géocodage interrompu");
+                    break;
+                }
+            }
+        }
+        System.out.println("Géocodage terminé.");
+    }
+
+    // ══════════════════════════════════════════════════
+    //  FILTRAGE AVANCÉ + PAGINATION
     // ══════════════════════════════════════════════════
 
     @Override
@@ -170,7 +255,7 @@ public class EventImplementation implements IEventService {
                 : Sort.Direction.DESC;
 
         // ── 2. Construction du Pageable ──
-        int pageSize = Math.min(Math.max(filter.getSize(), 1), 100); // entre 1 et 100
+        int pageSize = Math.min(Math.max(filter.getSize(), 1), 100);
         int pageNum  = Math.max(filter.getPage(), 0);
 
         Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(direction, sortField));
@@ -210,7 +295,7 @@ public class EventImplementation implements IEventService {
     }
 
     // ══════════════════════════════════════════════════
-    //  MAPPING (inchangé)
+    //  MAPPING
     // ══════════════════════════════════════════════════
 
     private EventResponseDTO mapToResponseDTO(Event event) {
@@ -223,7 +308,19 @@ public class EventImplementation implements IEventService {
         dto.setEventStatus(event.getEventStatus());
         dto.setLocation(event.getLocation());
         dto.setCapacity(event.getCapacity());
+        dto.setArchived(event.isArchived());
         dto.setCurrentParticipants(event.getCurrentParticipants());
+
+        // ── COORDONNÉES GÉOGRAPHIQUES ──
+        dto.setLatitude(event.getLatitude());
+        dto.setLongitude(event.getLongitude());
+
+        // Calcul en temps réel : inscriptions actives (PENDING + ACCEPTED)
+        long activeCount = inscriptionRepository
+                .countByEventIdAndStatusNot(event.getIdEvent(), InscriptionStatus.REJECTED);
+        dto.setActiveParticipantsCount(activeCount);
+        dto.setIsFull(event.getCapacity() > 0 && activeCount >= event.getCapacity());
+
         dto.setImageUrl(event.getImageUrl());
         dto.setCategory(event.getCategory());
         dto.setCreatedAt(event.getCreatedAt());

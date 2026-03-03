@@ -22,16 +22,19 @@ public class EventInscription {
      Long id;
     String ParticipantNom;
     String ParticipantPrenom;
+    String ParticipantEmail;
     LocalDateTime registrationDate;
     String badgeImagePath;
+    @Column(columnDefinition = "LONGTEXT", nullable = true)
     String message;
 
     @Enumerated(EnumType.STRING)
-    Domaine demaine;
+    Domaine domaine;
 
     @Enumerated(EnumType.STRING)
     ParticipantRole participantrole;
 
+    @Column(columnDefinition = "LONGTEXT", nullable = true)
     String imageUrl;
 
 
@@ -54,7 +57,7 @@ public class EventInscription {
         ParticipantPrenom = participantPrenom;
         this.registrationDate = registrationDate;
         this.badgeImagePath = badgeImagePath;
-        this.demaine = demaine;
+        this.domaine = domaine;
         this.participantrole = participantrole;
         this.imageUrl = imageUrl;
         this.status = status;
@@ -110,12 +113,12 @@ public class EventInscription {
         this.message = message;
     }
 
-    public Domaine getDemaine() {
-        return demaine;
+    public Domaine getDomaine() {
+        return domaine;
     }
 
-    public void setDemaine(Domaine demaine) {
-        this.demaine = demaine;
+    public void setDomaine(Domaine demaine) {
+        this.domaine = demaine;
     }
 
     public ParticipantRole getParticipantrole() {
@@ -156,5 +159,13 @@ public class EventInscription {
 
     public void setEvent(Event event) {
         this.event = event;
+    }
+
+    public String getParticipantEmail() {
+        return ParticipantEmail;
+    }
+
+    public void setParticipantEmail(String participantEmail) {
+        ParticipantEmail = participantEmail;
     }
 }

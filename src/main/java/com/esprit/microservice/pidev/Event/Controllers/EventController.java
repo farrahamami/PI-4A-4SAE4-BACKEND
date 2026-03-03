@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -49,10 +50,32 @@ public class EventController {
         return ResponseEntity.ok(eventService.getAllEvents());
     }
 
+    // Archive (remplace le DELETE)
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
-        eventService.deleteEvent(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> archiveEvent(@PathVariable Long id) {
+        eventService.archiveEvent(id);
+        return ResponseEntity.noContent().build(); // ← 204, zéro body
+    }
+
+    // Voir les archivés
+    @GetMapping("/archived")
+    public ResponseEntity<List<EventResponseDTO>> getArchivedEvents() {
+        return ResponseEntity.ok(eventService.getArchivedEvents());
+    }
+
+    // Restaurer
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<Void> restoreEvent(@PathVariable Long id) {
+        eventService.restoreEvent(id);
+        return ResponseEntity.noContent().build(); // ← 204, zéro body
+    }
+
+    @PostMapping("/admin/geocode-all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> geocodeAll() {
+        eventService.geocodeAllExistingEvents();
+        return ResponseEntity.ok("Géocodage terminé");
     }
 
     // ══════════════════════════════════════════════════

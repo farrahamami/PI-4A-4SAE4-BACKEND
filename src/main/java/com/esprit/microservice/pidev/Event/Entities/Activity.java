@@ -19,6 +19,7 @@ public class Activity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long idActivity;
     String name;
+    @Column(columnDefinition = "TEXT")
     String description;
     String requirements;
 

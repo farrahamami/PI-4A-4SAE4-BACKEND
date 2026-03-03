@@ -22,6 +22,7 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     long idEvent;
     String title;
+    @Column(columnDefinition = "TEXT")
     String description;
     LocalDateTime startDate;
     LocalDateTime endDate;
@@ -36,6 +37,16 @@ public class Event {
      String imageUrl;
     @Enumerated(EnumType.STRING)
     CategoryEvent category;
+
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
+
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Activity> activities = new ArrayList<>();
@@ -178,4 +189,29 @@ public class Event {
     public void setUser(User user) {
         this.user = user;
     }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+    }
 }
+

@@ -31,4 +31,12 @@ public interface InscriptionRepository extends JpaRepository<EventInscription, L
 
     @Query("SELECT i FROM EventInscription i WHERE i.event.idEvent = :eventId AND i.status = 'ACCEPTED'")
     List<EventInscription> findAcceptedByEventId(@Param("eventId") Long eventId);
+
+    /**
+     * Compte les inscriptions actives (PENDING + ACCEPTED) pour un événement.
+     * Utilisé pour vérifier si la capacité maximale est atteinte.
+     */
+    @Query("SELECT COUNT(i) FROM EventInscription i WHERE i.event.idEvent = :eventId AND i.status <> :excludedStatus")
+    long countByEventIdAndStatusNot(@Param("eventId") Long eventId,
+                                    @Param("excludedStatus") InscriptionStatus excludedStatus);
 }

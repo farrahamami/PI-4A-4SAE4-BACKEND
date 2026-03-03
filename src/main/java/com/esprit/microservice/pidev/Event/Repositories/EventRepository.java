@@ -53,5 +53,14 @@ public interface EventRepository extends JpaRepository<Event, Long>,
 
     // ── Événements d'un utilisateur (paginés) ──
     Page<Event> findByUser_Id(Integer userId, Pageable pageable);
+
+    List<Event> findByLatitudeIsNull();
+
+    // Remplacer findAll() par ces méthodes
+    List<Event> findByArchivedFalse();
+    Page<Event> findByArchivedFalse(Pageable pageable);
+
+    // Pour l'admin uniquement
+    List<Event> findByArchivedTrue();
 }
 

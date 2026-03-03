@@ -13,13 +13,13 @@ import java.util.List;
 
 public class EventSpecification {
 
-    // ─────────────────────────────────────────────
-    //  Méthode principale : combine tous les filtres
-    // ─────────────────────────────────────────────
     public static Specification<Event> buildFromFilter(EventFilterDTO filter) {
         return (root, query, cb) -> {
 
             List<Predicate> predicates = new ArrayList<>();
+
+            // ── EXCLURE LES ARCHIVÉS (toujours appliqué) ──
+            predicates.add(cb.equal(root.get("archived"), false));
 
             // ── Titre ──
             if (isNotBlank(filter.getTitleContains())) {
@@ -110,7 +110,6 @@ public class EventSpecification {
                 ));
             }
 
-            // Éviter les doublons sur les JOIN (ex: activités)
             query.distinct(true);
 
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -172,9 +171,6 @@ public class EventSpecification {
                 : null;
     }
 
-    // ─────────────────────────────────────────────
-    //  Utilitaire
-    // ─────────────────────────────────────────────
     private static boolean isNotBlank(String s) {
         return s != null && !s.trim().isEmpty();
     }

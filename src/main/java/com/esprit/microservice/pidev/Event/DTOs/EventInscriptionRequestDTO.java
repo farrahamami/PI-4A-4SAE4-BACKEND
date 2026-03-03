@@ -2,6 +2,7 @@ package com.esprit.microservice.pidev.Event.DTOs;
 
 import com.esprit.microservice.pidev.Event.Entities.Domaine;
 import com.esprit.microservice.pidev.Event.Entities.ParticipantRole;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,10 +17,15 @@ public class EventInscriptionRequestDTO {
 
     private String participantNom;
     private String participantPrenom;
-    private Domaine demaine;
+    private String participantEmail;
+    private Domaine domaine;
     private ParticipantRole participantRole;
+
     private String message;
+    private String imageUrl;
+    @NotNull(message = "userId est obligatoire")
     private Long userId;
+    @NotNull(message = "eventId est obligatoire")
     private Long eventId;
 
     public String getParticipantNom() {
@@ -38,13 +44,7 @@ public class EventInscriptionRequestDTO {
         this.participantPrenom = participantPrenom;
     }
 
-    public Domaine getDemaine() {
-        return demaine;
-    }
 
-    public void setDemaine(Domaine domaine) {
-        this.demaine = domaine;
-    }
 
     public ParticipantRole getParticipantRole() {
         return participantRole;
@@ -76,5 +76,29 @@ public class EventInscriptionRequestDTO {
 
     public void setEventId(Long eventId) {
         this.eventId = eventId;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public Domaine getDomaine() {
+        return domaine;
+    }
+
+    public void setDomaine(Domaine domaine) {
+        this.domaine = domaine;
+    }
+
+    public String getParticipantEmail() {
+        return participantEmail;
+    }
+
+    public void setParticipantEmail(String participantEmail) {
+        this.participantEmail = participantEmail;
     }
 }

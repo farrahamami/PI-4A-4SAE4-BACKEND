@@ -22,12 +22,18 @@ public class EventResponseDTO  {
     private String location;
     private Integer capacity;
     private Integer currentParticipants;
+    private Long activeParticipantsCount;  // PENDING + ACCEPTED (exclut REJECTED)
+    private Boolean isFull;                // true quand activeParticipantsCount >= capacity
     private String imageUrl;
     private CategoryEvent category;
     private Integer userId;
     private String userName;
     private LocalDateTime createdAt;
+    private Double latitude;
+    private Double longitude;
+    private boolean archived;
     private List<ActivityRequestDTO> activities;
+
 
 
 }
