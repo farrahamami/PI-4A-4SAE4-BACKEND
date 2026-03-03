@@ -3,70 +3,49 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      # Global CORS — handled once here instead of each microservice
       globalcors:
         cors-configurations:
           '[/**]':
             allowedOrigins:
               - "http://localhost:4200"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders:
-              - "*"
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+            allowedHeaders: ["*"]
             allowCredentials: true
-            exposedHeaders:
-              - Authorization
-              - Content-Type
-
+            exposedHeaders: [Authorization, Content-Type]
       routes:
         # ── USER SERVICE ──────────────────────────────────────────
         - id: user-service-auth
           uri: lb://user-service
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=0
+          predicates: [Path=/api/auth/**]
+          filters: [StripPrefix=0]
 
         - id: user-service-users
           uri: lb://user-service
-          predicates:
-            - Path=/users/**
-          filters:
-            - StripPrefix=0
+          predicates: [Path=/users/**]
+          filters: [StripPrefix=0]
 
-        # ── FORUM SERVICE ─────────────────────────────────────────
-        - id: forum-service-publications
-          uri: lb://forum-service
-          predicates:
-            - Path=/api/publications/**
-          filters:
-            - StripPrefix=0
+        # ── PUBLICATION SERVICE ───────────────────────────────────
+        - id: publication-service
+          uri: lb://publication-service
+          predicates: [Path=/api/publications/**]
+          filters: [StripPrefix=0]
 
-        - id: forum-service-commentaires
-          uri: lb://forum-service
-          predicates:
-            - Path=/api/commentaires/**
-          filters:
-            - StripPrefix=0
+        - id: publication-uploads
+          uri: lb://publication-service
+          predicates: [Path=/uploads/**]
+          filters: [StripPrefix=0]
 
-        - id: forum-service-reactions
-          uri: lb://forum-service
-          predicates:
-            - Path=/api/reactions/**
-          filters:
-            - StripPrefix=0
+        # ── COMMENTAIRE SERVICE ───────────────────────────────────
+        - id: commentaire-service
+          uri: lb://commentaire-service
+          predicates: [Path=/api/commentaires/**]
+          filters: [StripPrefix=0]
 
-        # ── UPLOADS (static files served by forum-service) ────────
-        - id: forum-service-uploads
-          uri: lb://forum-service
-          predicates:
-            - Path=/uploads/**
-          filters:
-            - StripPrefix=0
+        # ── REACTION SERVICE ──────────────────────────────────────
+        - id: reaction-service
+          uri: lb://reaction-service
+          predicates: [Path=/api/reactions/**]
+          filters: [StripPrefix=0]
 
 server:
   port: 8222
