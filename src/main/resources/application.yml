@@ -50,18 +50,24 @@ spring:
         # ── ADS SERVICE ───────────────────────────────────────────
         - id: ads-service-plans
           uri: lb://ads-service
-          predicates: [Path=/api/plans/**]
-          filters: [StripPrefix=0]
+          predicates:
+            - Path=/api/plans/**
+          filters:
+            - RewritePath=/api/plans/(?<segment>.*), /ads-service/api/plans/$\{segment}
 
         - id: ads-service-campaigns
           uri: lb://ads-service
-          predicates: [Path=/api/campaigns/**]
-          filters: [StripPrefix=0]
+          predicates:
+            - Path=/api/campaigns/**
+          filters:
+            - RewritePath=/api/campaigns/(?<segment>.*), /ads-service/api/campaigns/$\{segment}
 
         - id: ads-service-ads
           uri: lb://ads-service
-          predicates: [Path=/api/ads/**]
-          filters: [StripPrefix=0]
+          predicates:
+            - Path=/api/ads/**
+          filters:
+            - RewritePath=/api/ads/(?<segment>.*), /ads-service/api/ads/$\{segment}
 server:
   port: 8222
 
