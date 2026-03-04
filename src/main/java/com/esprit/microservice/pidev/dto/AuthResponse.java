@@ -1,19 +1,38 @@
 package com.esprit.microservice.pidev.dto;
-import com.esprit.microservice.pidev.Entities.Role;
 
 public class AuthResponse {
+    private Integer id;
     private String token;
-    private Role role; // include role
+    private String role;
 
-    public AuthResponse(String token, Role role) {
+    public AuthResponse(Integer id, String token, String role) {
+        this.id = id;
         this.token = token;
         this.role = role;
     }
 
-    // getters and setters
-    public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
+    // Getters and setters
+    public Integer getId() {
+        return id;
+    }
 
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 }

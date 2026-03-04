@@ -6,9 +6,13 @@ import com.esprit.microservice.pidev.dto.AuthResponse;
 import com.esprit.microservice.pidev.dto.RegisterRequest;
 import com.esprit.microservice.pidev.Entities.User;
 import com.esprit.microservice.pidev.Repositories.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class AuthService {
@@ -33,15 +37,34 @@ public class AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
+        // Deactivated account → 403
+        if (!user.isEnabled()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "deactivated");
+        }
+
+        // Timed out account → 423
+        if (user.isTimedOut() && user.getTimeoutUntil() != null) {
+            if (LocalDateTime.now().isBefore(user.getTimeoutUntil())) {
+                throw new ResponseStatusException(HttpStatus.valueOf(423), "suspended");
+            } else {
+                // Timeout expired — lift automatically
+                user.setTimedOut(false);
+                user.setTimeoutUntil(null);
+                userRepository.save(user);
+            }
+        }
+
         String token = jwtService.generateToken(
                 user.getEmail(),
                 user.getRole().name()
         );
 
-        // Pass both token and role to the AuthResponse constructor
-        return new AuthResponse(token, user.getRole());
+        return new AuthResponse(
+                user.getId(),
+                token,
+                user.getRole().name()
+        );
     }
-
 
     public void register(RegisterRequest request) {
         User user = new User();
@@ -52,15 +75,18 @@ public class AuthService {
         user.setBirthDate(request.getBirthDate());
         user.setEnabled(true);
 
-        // Convert string to enum
         Role role;
         try {
             role = Role.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
-            role = Role.CLIENT; // default if invalid
+            role = Role.CLIENT;
         }
         user.setRole(role);
 
         userRepository.save(user);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }

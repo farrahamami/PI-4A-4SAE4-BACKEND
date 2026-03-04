@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.time.LocalDateTime;  // add this import
 
 import java.time.LocalDate;
 
@@ -33,4 +34,9 @@ public class User {
     private Role role;
 
     private boolean enabled = true;
+    @Column(columnDefinition = "TEXT")
+    private String avatar; // stores Base64 or a file path
+    private boolean timedOut = false;
+    private LocalDateTime timeoutUntil;
+    private int reportCount = 0;
 }
