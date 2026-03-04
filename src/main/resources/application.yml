@@ -47,27 +47,27 @@ spring:
           predicates: [Path=/api/reactions/**]
           filters: [StripPrefix=0]
 
-        # ── ADS SERVICE ───────────────────────────────────────────
+        # ── ADS SERVICE (FIXED REGEX) ─────────────────────────────
         - id: ads-service-plans
           uri: lb://ads-service
           predicates:
-            - Path=/api/plans/**
+            - Path=/api/plans,/api/plans/**
           filters:
-            - RewritePath=/api/plans/(?<segment>.*), /ads-service/api/plans/$\{segment}
+            - RewritePath=/api(?<segment>.*), /ads-service/api$\{segment}
 
         - id: ads-service-campaigns
           uri: lb://ads-service
           predicates:
-            - Path=/api/campaigns/**
+            - Path=/api/campaigns,/api/campaigns/**
           filters:
-            - RewritePath=/api/campaigns/(?<segment>.*), /ads-service/api/campaigns/$\{segment}
+            - RewritePath=/api(?<segment>.*), /ads-service/api$\{segment}
 
         - id: ads-service-ads
           uri: lb://ads-service
           predicates:
-            - Path=/api/ads/**
+            - Path=/api/ads,/api/ads/**
           filters:
-            - RewritePath=/api/ads/(?<segment>.*), /ads-service/api/ads/$\{segment}
+            - RewritePath=/api(?<segment>.*), /ads-service/api$\{segment}
 server:
   port: 8222
 
