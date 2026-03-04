@@ -71,13 +71,7 @@ PIDEV – 4SAE4 | 2025–2026
 
 ### Installation
 
-1. Clone the project:
-
-```bash
-git clone https://github.com/esprit-pidev/prolance-backend
-```
-
-2. Start Infrastructure:
+1. Start Infrastructure:
 
 ```bash
 docker-compose up -d
