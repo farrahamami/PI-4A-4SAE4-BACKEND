@@ -1,5 +1,9 @@
 package com.esprit.microservice.adsservice.config;
 
+// CORS DISABLED - API Gateway handles CORS globally
+// Duplicate CORS headers cause issues with browsers
+
+/*
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -26,3 +30,4 @@ public class CorsConfig {
         return new CorsFilter(source);
     }
 }
+*/
