@@ -47,6 +47,21 @@ spring:
           predicates: [Path=/api/reactions/**]
           filters: [StripPrefix=0]
 
+        # ── ADS SERVICE ───────────────────────────────────────────
+        - id: ads-service-plans
+          uri: lb://ads-service
+          predicates: [Path=/api/plans/**]
+          filters: [StripPrefix=0]
+
+        - id: ads-service-campaigns
+          uri: lb://ads-service
+          predicates: [Path=/api/campaigns/**]
+          filters: [StripPrefix=0]
+
+        - id: ads-service-ads
+          uri: lb://ads-service
+          predicates: [Path=/api/ads/**]
+          filters: [StripPrefix=0]
 server:
   port: 8222
 
