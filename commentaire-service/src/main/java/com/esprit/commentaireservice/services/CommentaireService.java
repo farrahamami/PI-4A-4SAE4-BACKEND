@@ -31,7 +31,6 @@ public class CommentaireService {
 
     public Commentaire create(String contenue, Integer publicationId, Integer userId) {
         if (contenue == null || contenue.trim().isEmpty()) throw new IllegalArgumentException("Content required");
-        // Validate publication exists via Feign
         try { publicationClient.getPublicationById(publicationId); } catch (Exception e) { throw new RuntimeException("Publication not found: " + publicationId); }
         Commentaire c = new Commentaire();
         c.setContenue(contenue); c.setUserId(userId); c.setPublicationId(publicationId);
@@ -63,7 +62,6 @@ public class CommentaireService {
 
     public Commentaire togglePin(Integer id, Integer userId) {
         Commentaire c = getById(id);
-        // Validate the user is the publication owner via Feign
         try {
             PublicationDTO pub = publicationClient.getPublicationById(c.getPublicationId());
             if (!pub.getUserId().equals(userId)) throw new RuntimeException("Only publication owner can pin");
@@ -72,7 +70,15 @@ public class CommentaireService {
         return commentaireRepository.save(c);
     }
 
+    // ✅ Enrichit le commentaire ET toutes ses replies avec les données utilisateur
     private void enrichWithUser(Commentaire c) {
         try { c.setUser(userClient.getUserById(c.getUserId())); } catch (Exception ignored) {}
+
+        // ✅ Enrichir aussi les replies imbriquées
+        if (c.getReplies() != null && !c.getReplies().isEmpty()) {
+            c.getReplies().forEach(reply -> {
+                try { reply.setUser(userClient.getUserById(reply.getUserId())); } catch (Exception ignored) {}
+            });
+        }
     }
 }
