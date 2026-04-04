@@ -19,19 +19,18 @@ public interface PublicationRepository extends JpaRepository<Publication, Intege
 
     List<Publication> findAllByOrderByCreateAtDesc();
 
-    /** Toutes les publications ACTIVES (utilisées dans le feed public) */
     List<Publication> findByStatutOrderByCreateAtDesc(StatutPublication statut);
 
-    /** Publications ACTIVES d'un type donné */
     List<Publication> findByTypeAndStatutOrderByCreateAtDesc(TypePublication type, StatutPublication statut);
 
-    /** Publications archivées ou en attente d'un utilisateur (pour son onglet Archives) */
     List<Publication> findByUserIdAndStatutIn(Integer userId, List<StatutPublication> statuts);
 
-    /** Publications en attente (pour l'admin) */
     List<Publication> findByStatut(StatutPublication statut);
 
-    /** Vérifie si un userId a déjà signalé une publication */
     @Query("SELECT CASE WHEN :userId MEMBER OF p.signalements THEN true ELSE false END FROM Publication p WHERE p.id = :pubId")
     boolean hasUserAlreadySignaled(@Param("pubId") Integer pubId, @Param("userId") Integer userId);
+
+
+    @Query("SELECT COUNT(p) FROM Publication p WHERE p.userId = :userId AND p.statut IN ('ARCHIVED', 'PENDING')")
+    long countArchivedByUserId(@Param("userId") Integer userId);
 }

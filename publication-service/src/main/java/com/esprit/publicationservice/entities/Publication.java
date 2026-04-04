@@ -53,19 +53,13 @@ public class Publication {
     @Column(nullable = false)
     private TypePublication type;
 
-    // ── Signalement ───────────────────────────────────────────────
-    /** IDs des utilisateurs qui ont signalé ce post (pas de nouvelle entité) */
+
     @ElementCollection
     @CollectionTable(name = "publication_signalements", joinColumns = @JoinColumn(name = "publication_id"))
     @Column(name = "user_id")
     private List<Integer> signalements = new ArrayList<>();
 
-    // ── Archivage ─────────────────────────────────────────────────
-    /**
-     * ACTIVE     : visible normalement
-     * ARCHIVED   : archivé automatiquement (3 signalements) ou manuellement par l'admin
-     * PENDING    : en attente de validation admin (demande de réactivation par l'auteur)
-     */
+
     @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false)
     private StatutPublication statut = StatutPublication.ACTIVE;

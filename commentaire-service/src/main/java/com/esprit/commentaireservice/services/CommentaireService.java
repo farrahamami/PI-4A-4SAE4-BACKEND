@@ -70,11 +70,9 @@ public class CommentaireService {
         return commentaireRepository.save(c);
     }
 
-    // ✅ Enrichit le commentaire ET toutes ses replies avec les données utilisateur
     private void enrichWithUser(Commentaire c) {
         try { c.setUser(userClient.getUserById(c.getUserId())); } catch (Exception ignored) {}
 
-        // ✅ Enrichir aussi les replies imbriquées
         if (c.getReplies() != null && !c.getReplies().isEmpty()) {
             c.getReplies().forEach(reply -> {
                 try { reply.setUser(userClient.getUserById(reply.getUserId())); } catch (Exception ignored) {}
