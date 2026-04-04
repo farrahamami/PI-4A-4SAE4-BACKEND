@@ -13,14 +13,104 @@ import java.util.List;
 @RequestMapping("/api/publications")
 @RequiredArgsConstructor
 public class PublicationController {
+
     private final PublicationService publicationService;
 
-    @GetMapping public ResponseEntity<List<Publication>> getAll() { return ResponseEntity.ok(publicationService.getAllPublications()); }
-    @GetMapping("/type/{type}") public ResponseEntity<List<Publication>> getByType(@PathVariable TypePublication type) { return ResponseEntity.ok(publicationService.getPublicationsByType(type)); }
-    @GetMapping("/user/{userId}") public ResponseEntity<List<Publication>> getByUser(@PathVariable Integer userId) { return ResponseEntity.ok(publicationService.getPublicationsByUserId(userId)); }
-    @GetMapping("/{id}") public ResponseEntity<Publication> getById(@PathVariable Integer id) {
-        try { return ResponseEntity.ok(publicationService.getPublicationById(id)); } catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); }
+    // ── Lecture ───────────────────────────────────────────────────
+
+    /** Feed public : uniquement les publications ACTIVES */
+    @GetMapping
+    public ResponseEntity<List<Publication>> getAll() {
+        return ResponseEntity.ok(publicationService.getAllPublications());
     }
+
+    /** Admin : toutes les publications (tous statuts) */
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<Publication>> getAllAdmin() {
+        return ResponseEntity.ok(publicationService.getAllPublicationsAdmin());
+    }
+
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<Publication>> getByType(@PathVariable TypePublication type) {
+        return ResponseEntity.ok(publicationService.getPublicationsByType(type));
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Publication>> getByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(publicationService.getPublicationsByUserId(userId));
+    }
+
+    /** Publications archivées/en-attente d'un utilisateur (son onglet "Archives") */
+    @GetMapping("/user/{userId}/archived")
+    public ResponseEntity<List<Publication>> getArchivedByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(publicationService.getArchivedByUserId(userId));
+    }
+
+    /** Admin : liste des publications en attente de réactivation */
+    @GetMapping("/admin/pending")
+    public ResponseEntity<List<Publication>> getPending() {
+        return ResponseEntity.ok(publicationService.getPendingPublications());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Publication> getById(@PathVariable Integer id) {
+        try { return ResponseEntity.ok(publicationService.getPublicationById(id)); }
+        catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); }
+    }
+
+    // ── Signalement ───────────────────────────────────────────────
+
+    /**
+     * POST /api/publications/{id}/signaler?userId=X
+     * Signale une publication. Au 3e signalement, elle est archivée automatiquement.
+     */
+    @PostMapping("/{id}/signaler")
+    public ResponseEntity<?> signaler(@PathVariable Integer id, @RequestParam Integer userId) {
+        try {
+            return ResponseEntity.ok(publicationService.signalerPublication(id, userId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    // ── Réactivation (user) ───────────────────────────────────────
+
+    /**
+     * POST /api/publications/{id}/reactiver?userId=X
+     * L'auteur demande la réactivation → statut PENDING.
+     */
+    @PostMapping("/{id}/reactiver")
+    public ResponseEntity<?> reactiver(@PathVariable Integer id, @RequestParam Integer userId) {
+        try {
+            return ResponseEntity.ok(publicationService.demanderReactivation(id, userId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
+
+    // ── Décision admin ────────────────────────────────────────────
+
+    /** POST /api/publications/admin/{id}/accepter → ACTIVE */
+    @PostMapping("/admin/{id}/accepter")
+    public ResponseEntity<?> accepterReactivation(@PathVariable Integer id) {
+        try { return ResponseEntity.ok(publicationService.accepterReactivation(id)); }
+        catch (IllegalStateException e) { return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
+        catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); }
+    }
+
+    /** POST /api/publications/admin/{id}/refuser → ARCHIVED */
+    @PostMapping("/admin/{id}/refuser")
+    public ResponseEntity<?> refuserReactivation(@PathVariable Integer id) {
+        try { return ResponseEntity.ok(publicationService.refuserReactivation(id)); }
+        catch (IllegalStateException e) { return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
+        catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); }
+    }
+
+    // ── CRUD existant ─────────────────────────────────────────────
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
@@ -38,29 +128,31 @@ public class PublicationController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(@PathVariable Integer id,
-            @RequestParam(value = "titre", required = false) String titre,
-            @RequestParam(value = "contenue", required = false) String contenue,
-            @RequestParam(value = "type", required = false) TypePublication type,
-            @RequestParam("userId") Integer userId,
-            @RequestParam(value = "images", required = false) List<MultipartFile> newImages,
-            @RequestParam(value = "imagesToKeep", required = false) List<String> imagesToKeep,
-            @RequestParam(value = "pdfs", required = false) List<MultipartFile> newPdfs,
-            @RequestParam(value = "pdfsToKeep", required = false) List<String> pdfsToKeep,
-            @RequestParam(value = "titleColor", required = false) String titleColor,
-            @RequestParam(value = "contentColor", required = false) String contentColor,
-            @RequestParam(value = "titleFontSize", required = false) String titleFontSize) {
+                                    @RequestParam(value = "titre", required = false) String titre,
+                                    @RequestParam(value = "contenue", required = false) String contenue,
+                                    @RequestParam(value = "type", required = false) TypePublication type,
+                                    @RequestParam("userId") Integer userId,
+                                    @RequestParam(value = "images", required = false) List<MultipartFile> newImages,
+                                    @RequestParam(value = "imagesToKeep", required = false) List<String> imagesToKeep,
+                                    @RequestParam(value = "pdfs", required = false) List<MultipartFile> newPdfs,
+                                    @RequestParam(value = "pdfsToKeep", required = false) List<String> pdfsToKeep,
+                                    @RequestParam(value = "titleColor", required = false) String titleColor,
+                                    @RequestParam(value = "contentColor", required = false) String contentColor,
+                                    @RequestParam(value = "titleFontSize", required = false) String titleFontSize) {
         try { return ResponseEntity.ok(publicationService.updatePublication(id, titre, contenue, type, userId, newImages, imagesToKeep, newPdfs, pdfsToKeep, titleColor, contentColor, titleFontSize)); }
         catch (IllegalArgumentException e) { return ResponseEntity.badRequest().body(e.getMessage()); }
         catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage()); }
         catch (Exception e) { return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error"); }
     }
 
-    @DeleteMapping("/{id}") public ResponseEntity<?> delete(@PathVariable Integer id, @RequestParam Integer userId) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Integer id, @RequestParam Integer userId) {
         try { publicationService.deletePublication(id, userId); return ResponseEntity.ok("Deleted"); }
         catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage()); }
     }
 
-    @DeleteMapping("/admin/{id}") public ResponseEntity<?> adminDelete(@PathVariable Integer id) {
+    @DeleteMapping("/admin/{id}")
+    public ResponseEntity<?> adminDelete(@PathVariable Integer id) {
         try { publicationService.adminDeletePublication(id); return ResponseEntity.ok("Deleted"); }
         catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); }
     }

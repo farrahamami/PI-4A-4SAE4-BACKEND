@@ -1,8 +1,8 @@
 package com.esprit.publicationservice.services;
 
 import com.esprit.publicationservice.clients.UserClient;
-import com.esprit.publicationservice.dto.UserDTO;
 import com.esprit.publicationservice.entities.Publication;
+import com.esprit.publicationservice.entities.StatutPublication;
 import com.esprit.publicationservice.entities.TypePublication;
 import com.esprit.publicationservice.repositories.PublicationRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,21 +20,54 @@ public class PublicationService {
     private final PublicationRepository publicationRepository;
     private final UserClient userClient;
     private static final String UPLOAD_DIR = "uploads/publications/";
+    private static final int SIGNALEMENT_THRESHOLD = 3;
 
+    // ─────────────────────────────────────────────────────────────
+    //  READ
+    // ─────────────────────────────────────────────────────────────
+
+    /** Feed public : seulement les publications ACTIVES */
     public List<Publication> getAllPublications() {
+        List<Publication> list = publicationRepository.findByStatutOrderByCreateAtDesc(StatutPublication.ACTIVE);
+        list.forEach(this::enrichWithUser);
+        return list;
+    }
+
+    /** Admin : toutes les publications sans filtre de statut */
+    public List<Publication> getAllPublicationsAdmin() {
         List<Publication> list = publicationRepository.findAllByOrderByCreateAtDesc();
         list.forEach(this::enrichWithUser);
         return list;
     }
 
     public List<Publication> getPublicationsByType(TypePublication type) {
-        List<Publication> list = publicationRepository.findByType(type);
+        List<Publication> list = publicationRepository.findByTypeAndStatutOrderByCreateAtDesc(type, StatutPublication.ACTIVE);
         list.forEach(this::enrichWithUser);
         return list;
     }
 
     public List<Publication> getPublicationsByUserId(Integer userId) {
         List<Publication> list = publicationRepository.findByUserId(userId);
+        list.forEach(this::enrichWithUser);
+        return list;
+    }
+
+    /**
+     * Publications archivées ou en attente d'un utilisateur
+     * (pour son onglet "Archives" en front)
+     */
+    public List<Publication> getArchivedByUserId(Integer userId) {
+        List<Publication> list = publicationRepository.findByUserIdAndStatutIn(
+                userId,
+                List.of(StatutPublication.ARCHIVED, StatutPublication.PENDING)
+        );
+        list.forEach(this::enrichWithUser);
+        return list;
+    }
+
+    /** Publications en attente de réactivation (admin) */
+    public List<Publication> getPendingPublications() {
+        List<Publication> list = publicationRepository.findByStatut(StatutPublication.PENDING);
         list.forEach(this::enrichWithUser);
         return list;
     }
@@ -46,10 +79,106 @@ public class PublicationService {
         return p;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    //  SIGNALEMENT
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Signale une publication.
+     * - Un user ne peut signaler qu'une seule fois.
+     * - A partir de SIGNALEMENT_THRESHOLD signalements → archivage automatique.
+     * @return la publication mise à jour
+     */
+    public Publication signalerPublication(Integer id, Integer userId) {
+        Publication p = publicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Publication not found: " + id));
+
+        if (p.getStatut() != StatutPublication.ACTIVE) {
+            throw new IllegalStateException("Cette publication n'est pas active.");
+        }
+        if (p.getSignalements().contains(userId)) {
+            throw new IllegalStateException("Vous avez déjà signalé cette publication.");
+        }
+
+        p.getSignalements().add(userId);
+
+        if (p.getSignalements().size() >= SIGNALEMENT_THRESHOLD) {
+            p.setStatut(StatutPublication.ARCHIVED);
+        }
+
+        Publication saved = publicationRepository.save(p);
+        enrichWithUser(saved);
+        return saved;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  RÉACTIVATION (user → PENDING)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * L'auteur demande la réactivation de sa publication archivée.
+     * Le statut passe à PENDING en attente de la décision admin.
+     */
+    public Publication demanderReactivation(Integer id, Integer userId) {
+        Publication p = publicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Publication not found: " + id));
+
+        if (!p.getUserId().equals(userId)) {
+            throw new RuntimeException("Non autorisé.");
+        }
+        if (p.getStatut() != StatutPublication.ARCHIVED) {
+            throw new IllegalStateException("La publication n'est pas archivée.");
+        }
+
+        p.setStatut(StatutPublication.PENDING);
+        Publication saved = publicationRepository.save(p);
+        enrichWithUser(saved);
+        return saved;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  DÉCISION ADMIN
+    // ─────────────────────────────────────────────────────────────
+
+    /** Admin accepte la réactivation → ACTIVE + reset des signalements */
+    public Publication accepterReactivation(Integer id) {
+        Publication p = publicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Publication not found: " + id));
+
+        if (p.getStatut() != StatutPublication.PENDING) {
+            throw new IllegalStateException("La publication n'est pas en attente.");
+        }
+
+        p.setStatut(StatutPublication.ACTIVE);
+        p.getSignalements().clear(); // on repart à zéro
+        Publication saved = publicationRepository.save(p);
+        enrichWithUser(saved);
+        return saved;
+    }
+
+    /** Admin refuse la réactivation → reste ARCHIVED */
+    public Publication refuserReactivation(Integer id) {
+        Publication p = publicationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Publication not found: " + id));
+
+        if (p.getStatut() != StatutPublication.PENDING) {
+            throw new IllegalStateException("La publication n'est pas en attente.");
+        }
+
+        p.setStatut(StatutPublication.ARCHIVED);
+        Publication saved = publicationRepository.save(p);
+        enrichWithUser(saved);
+        return saved;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  CRUD existant (inchangé)
+    // ─────────────────────────────────────────────────────────────
+
     public Publication createPublication(String titre, String contenue, TypePublication type,
-                                          Integer userId, List<MultipartFile> images,
-                                          List<MultipartFile> pdfs, String titleColor,
-                                          String contentColor, String titleFontSize) throws IOException {
+                                         Integer userId, List<MultipartFile> images,
+                                         List<MultipartFile> pdfs, String titleColor,
+                                         String contentColor, String titleFontSize) throws IOException {
         if (titre == null || titre.trim().isEmpty()) throw new IllegalArgumentException("Title is required");
         if (contenue == null || contenue.trim().isEmpty()) throw new IllegalArgumentException("Content is required");
         try { userClient.getUserById(userId); } catch (Exception e) { throw new RuntimeException("User not found: " + userId); }
@@ -62,6 +191,7 @@ public class PublicationService {
 
         Publication p = new Publication();
         p.setTitre(titre); p.setContenue(contenue); p.setType(type); p.setUserId(userId);
+        p.setStatut(StatutPublication.ACTIVE);
         if (titleColor != null) p.setTitleColor(titleColor);
         if (contentColor != null) p.setContentColor(contentColor);
         if (titleFontSize != null) p.setTitleFontSize(titleFontSize);
@@ -75,9 +205,9 @@ public class PublicationService {
     }
 
     public Publication updatePublication(Integer id, String titre, String contenue, TypePublication type,
-                                          Integer userId, List<MultipartFile> newImages, List<String> imagesToKeep,
-                                          List<MultipartFile> newPdfs, List<String> pdfsToKeep,
-                                          String titleColor, String contentColor, String titleFontSize) throws IOException {
+                                         Integer userId, List<MultipartFile> newImages, List<String> imagesToKeep,
+                                         List<MultipartFile> newPdfs, List<String> pdfsToKeep,
+                                         String titleColor, String contentColor, String titleFontSize) throws IOException {
         Publication p = publicationRepository.findById(id).orElseThrow(() -> new RuntimeException("Publication not found"));
         if (!p.getUserId().equals(userId)) throw new RuntimeException("Not authorized");
         if (titre != null && !titre.trim().isEmpty()) p.setTitre(titre);
@@ -118,6 +248,10 @@ public class PublicationService {
         p.getImages().forEach(this::deleteFile); p.getPdfs().forEach(this::deleteFile);
         publicationRepository.delete(p);
     }
+
+    // ─────────────────────────────────────────────────────────────
+    //  HELPERS
+    // ─────────────────────────────────────────────────────────────
 
     private void enrichWithUser(Publication p) {
         try { p.setUser(userClient.getUserById(p.getUserId())); } catch (Exception ignored) {}
