@@ -64,6 +64,9 @@ public class Publication {
     @Column(name = "statut", nullable = false)
     private StatutPublication statut = StatutPublication.ACTIVE;
 
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
     @PrePersist
     protected void onCreate() { createAt = LocalDateTime.now(); }
 }

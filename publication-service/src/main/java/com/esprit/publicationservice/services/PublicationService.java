@@ -153,6 +153,7 @@ public class PublicationService {
 
         if (p.getSignalements().size() >= SIGNALEMENT_THRESHOLD) {
             p.setStatut(StatutPublication.ARCHIVED);
+            p.setArchivedAt(java.time.LocalDateTime.now());
         }
 
         Publication saved = publicationRepository.save(p);
@@ -207,6 +208,7 @@ public class PublicationService {
         }
 
         p.setStatut(StatutPublication.ARCHIVED);
+        p.setArchivedAt(java.time.LocalDateTime.now());
         Publication saved = publicationRepository.save(p);
         enrichWithUser(saved);
         return saved;
