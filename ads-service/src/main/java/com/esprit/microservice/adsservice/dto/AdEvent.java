@@ -17,6 +17,10 @@ public class AdEvent {
     private CreatedBy createdBy;
     private Long userId;
     private LocalDateTime timestamp;
+    private String ip;
+    private Double latitude;
+    private Double longitude;
+    private String city;
 
     public enum EventType {
         VIEW,
