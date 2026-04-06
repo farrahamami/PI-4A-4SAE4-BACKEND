@@ -1,7 +1,9 @@
 package com.esprit.microservice.adsservice.services;
 
 import com.esprit.microservice.adsservice.dto.AiSuggestionResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,14 +15,19 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class GroqAiService {
 
     private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-    private static final String API_KEY = "";
-    private static final String MODEL = "llama-3.3-70b-versatile";
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Value("${groq.api.key}")
+    private String apiKey;
+
+    @Value("${groq.api.model:llama-3.3-70b-versatile}")
+    private String groqModel;
+
+    private final RestTemplate restTemplate;
 
     public AiSuggestionResponse generateAdSuggestion(String userPrompt) {
         log.info("[GROQ AI] Generating ad suggestion for prompt: {}", userPrompt);
@@ -32,10 +39,10 @@ public class GroqAiService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(API_KEY);
+            headers.setBearerAuth(apiKey);
 
             Map<String, Object> requestBody = Map.of(
-                "model", MODEL,
+                "model", groqModel,
                 "messages", List.of(
                     Map.of("role", "system", "content", systemPrompt),
                     Map.of("role", "user", "content", userPrompt)
@@ -45,10 +52,16 @@ public class GroqAiService {
             );
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(GROQ_API_URL, request, Map.class);
+            @SuppressWarnings("unchecked")
+            ResponseEntity<Map<String, Object>> response = restTemplate.postForEntity(GROQ_API_URL, request, (Class<Map<String, Object>>) (Class<?>) Map.class);
 
             Map<String, Object> responseBody = response.getBody();
+            if (responseBody == null) {
+                throw new IllegalStateException("Empty response from Groq API");
+            }
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+            @SuppressWarnings("unchecked")
             Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
             String content = (String) message.get("content");
 

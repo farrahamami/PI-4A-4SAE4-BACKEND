@@ -2,7 +2,10 @@ package com.esprit.microservice.adsservice.services;
 
 import com.esprit.microservice.adsservice.dto.AdEvent;
 import com.esprit.microservice.adsservice.dto.CreateCampaignRequest;
-import com.esprit.microservice.adsservice.entities.*;
+import com.esprit.microservice.adsservice.entities.AdCampaign;
+import com.esprit.microservice.adsservice.entities.AdPlan;
+import com.esprit.microservice.adsservice.entities.AdStatus;
+import com.esprit.microservice.adsservice.entities.RoleType;
 import com.esprit.microservice.adsservice.exception.BadRequestException;
 import com.esprit.microservice.adsservice.exception.ResourceNotFoundException;
 import com.esprit.microservice.adsservice.kafka.KafkaProducerService;
@@ -38,7 +41,8 @@ public class AdCampaignService {
         if (request.getRoleType() != null && !request.getRoleType().isBlank()) {
             try {
                 roleType = RoleType.valueOf(request.getRoleType().toUpperCase());
-            } catch (IllegalArgumentException ignored) {
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid role type '{}', falling back to plan default: {}", request.getRoleType(), roleType);
             }
         }
 
@@ -170,7 +174,8 @@ public class AdCampaignService {
         if (request.getRoleType() != null && !request.getRoleType().isBlank()) {
             try {
                 campaign.setRoleType(RoleType.valueOf(request.getRoleType().toUpperCase()));
-            } catch (IllegalArgumentException ignored) {
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid role type '{}', keeping existing: {}", request.getRoleType(), campaign.getRoleType());
             }
         }
         campaign.setTargetId(request.getTargetId());

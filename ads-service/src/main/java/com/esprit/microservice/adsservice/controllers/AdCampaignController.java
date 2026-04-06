@@ -1,6 +1,12 @@
 package com.esprit.microservice.adsservice.controllers;
 
-import com.esprit.microservice.adsservice.dto.*;
+import com.esprit.microservice.adsservice.dto.AdminActionRequest;
+import com.esprit.microservice.adsservice.dto.AiSuggestionResponse;
+import com.esprit.microservice.adsservice.dto.CampaignResponse;
+import com.esprit.microservice.adsservice.dto.CreateCampaignRequest;
+import com.esprit.microservice.adsservice.dto.GenerateSuggestionRequest;
+import com.esprit.microservice.adsservice.dto.ModerationResponse;
+import com.esprit.microservice.adsservice.dto.ValidationRequest;
 import com.esprit.microservice.adsservice.entities.AdCampaign;
 import com.esprit.microservice.adsservice.entities.RoleType;
 import com.esprit.microservice.adsservice.security.SecurityUtils;
@@ -13,7 +19,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 

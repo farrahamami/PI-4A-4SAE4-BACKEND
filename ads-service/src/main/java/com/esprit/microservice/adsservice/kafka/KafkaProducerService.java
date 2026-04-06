@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Service
@@ -39,7 +40,7 @@ public class KafkaProducerService {
                 "description", description != null ? description : "",
                 "violation", violation,
                 "categoryCode", categoryCode,
-                "timestamp", java.time.LocalDateTime.now().toString()
+                "timestamp", LocalDateTime.now().toString()
             );
             log.info("[KAFKA] Sending moderation log to {}: Ad {} - User {} - {}", 
                     MODERATION_LOGS_TOPIC, adId, userEmail, violation);
@@ -56,7 +57,7 @@ public class KafkaProducerService {
                 "userEmail", userEmail != null ? userEmail : "unknown",
                 "message", message,
                 "priority", "HIGH",
-                "timestamp", java.time.LocalDateTime.now().toString()
+                "timestamp", LocalDateTime.now().toString()
             );
             log.warn("[KAFKA] Sending HIGH PRIORITY alert to {}: User {} - {}", USER_ALERTS_TOPIC, userId, message);
             kafkaTemplate.send(USER_ALERTS_TOPIC, userId.toString(), alert);
@@ -71,7 +72,7 @@ public class KafkaProducerService {
                 "userId", userId,
                 "email", email != null ? email : "unknown",
                 "violationCount", violationCount,
-                "timestamp", java.time.LocalDateTime.now().toString(),
+                "timestamp", LocalDateTime.now().toString(),
                 "status", "FLAGGED"
             );
             log.warn("[KAFKA] Sending FLAGGED event to {}: User {} ({}) with {} violations", 

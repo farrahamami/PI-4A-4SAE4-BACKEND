@@ -7,6 +7,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Slf4j
 public class SecurityUtils {
 
+    private SecurityUtils() {
+        // Utility class - prevent instantiation
+    }
+
     public static Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
