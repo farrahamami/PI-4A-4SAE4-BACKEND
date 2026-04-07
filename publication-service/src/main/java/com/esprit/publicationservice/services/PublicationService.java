@@ -102,25 +102,17 @@ public class PublicationService {
 
     /**
      * L'admin réactive le compte :
-     * - Remet toutes les publications ARCHIVED/PENDING du user en ACTIVE
-     * - Remet les signalements à zéro
-     * - Remet warningCount à 0 sur toutes ses publications (reset total des warnings)
+     * - Remet warningCount à 0 sur toutes les publications du user (reset total des warnings)
+     * - Remet les signalements à zéro sur toutes ses publications
+     * - NE change PAS le statut des publications (elles restent ARCHIVED/PENDING/ACTIVE telles quelles)
      */
     public void reactiverCompteUser(Integer userId) {
-        List<Publication> toReactivate = publicationRepository.findByUserIdAndStatutIn(
-                userId,
-                List.of(StatutPublication.ARCHIVED, StatutPublication.PENDING)
-        );
-        for (Publication p : toReactivate) {
-            p.setStatut(StatutPublication.ACTIVE);
-            p.getSignalements().clear();
-        }
-        publicationRepository.saveAll(toReactivate);
-
-        // Reset warningCount sur TOUTES les publications du user (y compris déjà actives)
+        // Reset warningCount et signalements sur TOUTES les publications du user
+        // sans toucher au statut
         List<Publication> allUserPubs = publicationRepository.findByUserId(userId);
         for (Publication p : allUserPubs) {
             p.setWarningCount(0);
+            p.getSignalements().clear();
         }
         publicationRepository.saveAll(allUserPubs);
     }
