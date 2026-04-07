@@ -80,56 +80,75 @@ public class PublicationService {
 
 
 
+    /**
+     * Un user est bloqué si la SOMME de ses warningCount >= 3.
+     * Ce total ne diminue jamais lors d'un déarchivage, seulement via reactiverCompteUser.
+     */
     public boolean isUserBlocked(Integer userId) {
-        long count = publicationRepository.countArchivedByUserId(userId);
-        return count >= BLOCK_THRESHOLD;
+        long totalWarnings = publicationRepository.sumWarningCountByUserId(userId);
+        return totalWarnings >= BLOCK_THRESHOLD;
     }
 
 
 
-    public long getArchivedCount(Integer userId) {
-        return publicationRepository.countArchivedByUserId(userId);
+    /**
+     * Retourne le total de warnings du user (somme de warningCount sur toutes ses publications).
+     */
+    public long getWarningCount(Integer userId) {
+        return publicationRepository.sumWarningCountByUserId(userId);
     }
 
 
 
+    /**
+     * L'admin réactive le compte :
+     * - Remet toutes les publications ARCHIVED/PENDING du user en ACTIVE
+     * - Remet les signalements à zéro
+     * - Remet warningCount à 0 sur toutes ses publications (reset total des warnings)
+     */
     public void reactiverCompteUser(Integer userId) {
-        List<Publication> bloquees = publicationRepository.findByUserIdAndStatutIn(
+        List<Publication> toReactivate = publicationRepository.findByUserIdAndStatutIn(
                 userId,
                 List.of(StatutPublication.ARCHIVED, StatutPublication.PENDING)
         );
-        for (Publication p : bloquees) {
+        for (Publication p : toReactivate) {
             p.setStatut(StatutPublication.ACTIVE);
             p.getSignalements().clear();
         }
-        publicationRepository.saveAll(bloquees);
+        publicationRepository.saveAll(toReactivate);
+
+        // Reset warningCount sur TOUTES les publications du user (y compris déjà actives)
+        List<Publication> allUserPubs = publicationRepository.findByUserId(userId);
+        for (Publication p : allUserPubs) {
+            p.setWarningCount(0);
+        }
+        publicationRepository.saveAll(allUserPubs);
     }
 
 
 
     public List<UserBlockDTO> getAllUsersBlockStatus() {
-        List<Publication> archived = publicationRepository.findByUserIdAndStatutIn(
-                null, // on va récupérer tous
-                List.of(StatutPublication.ARCHIVED, StatutPublication.PENDING)
-        );
-
-        Map<Integer, Long> countByUser = publicationRepository
+        // Récupère tous les users ayant au moins un warning (warningCount > 0)
+        Map<Integer, Long> warningsByUser = publicationRepository
                 .findAllByOrderByCreateAtDesc()
                 .stream()
-                .filter(p -> p.getStatut() == StatutPublication.ARCHIVED || p.getStatut() == StatutPublication.PENDING)
-                .collect(Collectors.groupingBy(Publication::getUserId, Collectors.counting()));
+                .filter(p -> p.getWarningCount() != null && p.getWarningCount() > 0)
+                .collect(Collectors.groupingBy(
+                        Publication::getUserId,
+                        Collectors.summingLong(p -> p.getWarningCount().longValue())
+                ));
 
         List<UserBlockDTO> result = new ArrayList<>();
-        for (Map.Entry<Integer, Long> entry : countByUser.entrySet()) {
-            Integer uid = entry.getKey();
-            long count  = entry.getValue();
+        for (Map.Entry<Integer, Long> entry : warningsByUser.entrySet()) {
+            Integer uid  = entry.getKey();
+            long warnings = entry.getValue();
             String name = "", lastName = "";
             try {
                 UserDTO u = userClient.getUserById(uid);
                 name     = u.getName()     != null ? u.getName()     : "";
                 lastName = u.getLastName() != null ? u.getLastName() : "";
             } catch (Exception ignored) {}
-            result.add(new UserBlockDTO(uid, name, lastName, count));
+            result.add(new UserBlockDTO(uid, name, lastName, warnings));
         }
 
         result.sort(Comparator.comparingLong(UserBlockDTO::getArchivedCount).reversed());
@@ -154,6 +173,8 @@ public class PublicationService {
         if (p.getSignalements().size() >= SIGNALEMENT_THRESHOLD) {
             p.setStatut(StatutPublication.ARCHIVED);
             p.setArchivedAt(java.time.LocalDateTime.now());
+            // Incrémente le warning de 1 — ne décrémentera jamais lors d'un déarchivage
+            p.setWarningCount(p.getWarningCount() + 1);
         }
 
         Publication saved = publicationRepository.save(p);
@@ -174,6 +195,7 @@ public class PublicationService {
             throw new IllegalStateException("La publication n'est pas archivée.");
         }
 
+        // On passe en PENDING mais on NE touche PAS au warningCount
         p.setStatut(StatutPublication.PENDING);
         Publication saved = publicationRepository.save(p);
         enrichWithUser(saved);
@@ -182,7 +204,7 @@ public class PublicationService {
 
 
 
-    /** Admin accepte la réactivation → ACTIVE + reset des signalements */
+    /** Admin accepte la réactivation → ACTIVE + reset des signalements (warningCount reste intact) */
     public Publication accepterReactivation(Integer id) {
         Publication p = publicationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Publication not found: " + id));
@@ -192,13 +214,14 @@ public class PublicationService {
         }
 
         p.setStatut(StatutPublication.ACTIVE);
-        p.getSignalements().clear(); // on repart à zéro
+        p.getSignalements().clear();
+        // warningCount reste intact — seul reactiverCompteUser remet à 0
         Publication saved = publicationRepository.save(p);
         enrichWithUser(saved);
         return saved;
     }
 
-    /** Admin refuse la réactivation → reste ARCHIVED */
+    /** Admin refuse la réactivation → reste ARCHIVED (warningCount intact) */
     public Publication refuserReactivation(Integer id) {
         Publication p = publicationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Publication not found: " + id));
@@ -224,7 +247,7 @@ public class PublicationService {
         if (contenue == null || contenue.trim().isEmpty()) throw new IllegalArgumentException("Content is required");
         try { userClient.getUserById(userId); } catch (Exception e) { throw new RuntimeException("User not found: " + userId); }
 
-
+        // Blocage basé sur le total de warningCount (ne décrémente jamais)
         if (isUserBlocked(userId)) {
             throw new IllegalStateException("BLOCKED: Votre compte est bloqué suite à 3 posts signalés. Contactez l'administrateur.");
         }
@@ -238,6 +261,7 @@ public class PublicationService {
         Publication p = new Publication();
         p.setTitre(titre); p.setContenue(contenue); p.setType(type); p.setUserId(userId);
         p.setStatut(StatutPublication.ACTIVE);
+        p.setWarningCount(0);
         if (titleColor    != null) p.setTitleColor(titleColor);
         if (contentColor  != null) p.setContentColor(contentColor);
         if (titleFontSize != null) p.setTitleFontSize(titleFontSize);

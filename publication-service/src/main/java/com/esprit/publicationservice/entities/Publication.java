@@ -53,12 +53,10 @@ public class Publication {
     @Column(nullable = false)
     private TypePublication type;
 
-
     @ElementCollection
     @CollectionTable(name = "publication_signalements", joinColumns = @JoinColumn(name = "publication_id"))
     @Column(name = "user_id")
     private List<Integer> signalements = new ArrayList<>();
-
 
     @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false)
@@ -66,6 +64,16 @@ public class Publication {
 
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
+
+    /**
+     * Compteur de warnings pour cette publication.
+     * On somme par userId pour obtenir le total de warnings d'un user.
+     * S'incrémente de 1 quand la publication passe en ARCHIVED (via signalement).
+     * Ne décrémente JAMAIS lors d'un déarchivage (PENDING / ACTIVE).
+     * Remis à 0 uniquement par l'admin via reactiverCompteUser().
+     */
+    @Column(name = "warning_count", nullable = false)
+    private Integer warningCount = 0;
 
     @PrePersist
     protected void onCreate() { createAt = LocalDateTime.now(); }

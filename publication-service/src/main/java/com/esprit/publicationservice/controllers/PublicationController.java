@@ -62,13 +62,17 @@ public class PublicationController {
 
 
 
+    /**
+     * Retourne le statut de blocage d'un user.
+     * warningCount = somme des warnings (ne décrémente jamais lors d'un déarchivage).
+     */
     @GetMapping("/user/{userId}/block-status")
     public ResponseEntity<Map<String, Object>> getBlockStatus(@PathVariable Integer userId) {
         boolean blocked      = publicationService.isUserBlocked(userId);
-        long    archivedCount = publicationService.getArchivedCount(userId);
+        long    warningCount = publicationService.getWarningCount(userId);
         return ResponseEntity.ok(Map.of(
                 "blocked",      blocked,
-                "archivedCount", archivedCount
+                "warningCount", warningCount
         ));
     }
 
@@ -150,7 +154,6 @@ public class PublicationController {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(publicationService.createPublication(titre, contenue, type, userId, images, pdfs, titleColor, contentColor, titleFontSize));
         } catch (IllegalStateException e) {
-            // Utilisateur bloqué
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
