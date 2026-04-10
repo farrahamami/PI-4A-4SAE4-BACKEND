@@ -23,7 +23,7 @@ public interface PublicationRepository extends JpaRepository<Publication, Intege
 
     List<Publication> findByTypeAndStatutOrderByCreateAtDesc(TypePublication type, StatutPublication statut);
 
-    List<Publication> findByUserIdAndStatutIn(Integer userId, List<StatutPublication> statuts);
+    List<Publication> findByUserIdAndStatut(Integer userId, StatutPublication statut);
 
     List<Publication> findByStatut(StatutPublication statut);
 
@@ -31,15 +31,9 @@ public interface PublicationRepository extends JpaRepository<Publication, Intege
     boolean hasUserAlreadySignaled(@Param("pubId") Integer pubId, @Param("userId") Integer userId);
 
     /**
-     * Ancien count basé sur le statut (gardé pour compatibilité interne si besoin).
+     * Nombre de publications ARCHIVED d'un utilisateur.
+     * Sert à déterminer si l'utilisateur est "averti" (1-2) ou "bloqué" (>=3).
      */
-    @Query("SELECT COUNT(p) FROM Publication p WHERE p.userId = :userId AND p.statut IN ('ARCHIVED', 'PENDING')")
+    @Query("SELECT COUNT(p) FROM Publication p WHERE p.userId = :userId AND p.statut = 'ARCHIVED'")
     long countArchivedByUserId(@Param("userId") Integer userId);
-
-    /**
-     * Somme des warningCount de toutes les publications d'un user.
-     * Ce total ne décrémente jamais lors d'un déarchivage.
-     */
-    @Query("SELECT COALESCE(SUM(p.warningCount), 0) FROM Publication p WHERE p.userId = :userId")
-    long sumWarningCountByUserId(@Param("userId") Integer userId);
 }

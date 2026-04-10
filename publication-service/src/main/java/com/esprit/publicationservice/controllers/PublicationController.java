@@ -19,13 +19,12 @@ public class PublicationController {
 
     private final PublicationService publicationService;
 
-
+    // ── Lecture ──────────────────────────────────────────────────────
 
     @GetMapping
     public ResponseEntity<List<Publication>> getAll() {
         return ResponseEntity.ok(publicationService.getAllPublications());
     }
-
 
     @GetMapping("/admin/all")
     public ResponseEntity<List<Publication>> getAllAdmin() {
@@ -42,16 +41,9 @@ public class PublicationController {
         return ResponseEntity.ok(publicationService.getPublicationsByUserId(userId));
     }
 
-
     @GetMapping("/user/{userId}/archived")
     public ResponseEntity<List<Publication>> getArchivedByUser(@PathVariable Integer userId) {
         return ResponseEntity.ok(publicationService.getArchivedByUserId(userId));
-    }
-
-
-    @GetMapping("/admin/pending")
-    public ResponseEntity<List<Publication>> getPending() {
-        return ResponseEntity.ok(publicationService.getPendingPublications());
     }
 
     @GetMapping("/{id}")
@@ -60,47 +52,52 @@ public class PublicationController {
         catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); }
     }
 
-
+    // ── Statut blocage ───────────────────────────────────────────────
 
     /**
      * Retourne le statut de blocage d'un user.
-     * warningCount = somme des warnings (ne décrémente jamais lors d'un déarchivage).
+     * archivedCount = nombre de posts archivés (seuil = 3 pour bloquer).
      */
     @GetMapping("/user/{userId}/block-status")
     public ResponseEntity<Map<String, Object>> getBlockStatus(@PathVariable Integer userId) {
         boolean blocked      = publicationService.isUserBlocked(userId);
-        long    warningCount = publicationService.getWarningCount(userId);
+        long    archivedCount = publicationService.getArchivedCount(userId);
         return ResponseEntity.ok(Map.of(
-                "blocked",      blocked,
-                "warningCount", warningCount
+                "blocked",       blocked,
+                "warningCount",  archivedCount   // conserve le nom "warningCount" pour compatibilité front
         ));
     }
 
-
+    // ── Utilisateurs bloqués / avertis ───────────────────────────────
 
     @GetMapping("/admin/blocked-users")
     public ResponseEntity<List<UserBlockDTO>> getBlockedUsers() {
         return ResponseEntity.ok(publicationService.getAllUsersBlockStatus());
     }
 
-
-
     @PostMapping("/admin/users/{userId}/reactiver-compte")
     public ResponseEntity<?> reactiverCompteUser(@PathVariable Integer userId) {
         try {
             publicationService.reactiverCompteUser(userId);
-            return ResponseEntity.ok(Map.of("message", "Compte réactivé avec succès."));
+            return ResponseEntity.ok(Map.of("message", "Compte réactivé. Publications archivées supprimées."));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
+    // ── Signalement ──────────────────────────────────────────────────
 
-
+    /**
+     * Signale une publication avec une raison obligatoire.
+     * 3 signalements → archivage automatique.
+     */
     @PostMapping("/{id}/signaler")
-    public ResponseEntity<?> signaler(@PathVariable Integer id, @RequestParam Integer userId) {
+    public ResponseEntity<?> signaler(
+            @PathVariable Integer id,
+            @RequestParam Integer userId,
+            @RequestParam(value = "raison", required = false, defaultValue = "") String raison) {
         try {
-            return ResponseEntity.ok(publicationService.signalerPublication(id, userId));
+            return ResponseEntity.ok(publicationService.signalerPublication(id, userId, raison));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (RuntimeException e) {
@@ -108,36 +105,7 @@ public class PublicationController {
         }
     }
 
-
-
-    @PostMapping("/{id}/reactiver")
-    public ResponseEntity<?> reactiver(@PathVariable Integer id, @RequestParam Integer userId) {
-        try {
-            return ResponseEntity.ok(publicationService.demanderReactivation(id, userId));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-        }
-    }
-
-
-    /** POST /api/publications/admin/{id}/accepter → ACTIVE */
-    @PostMapping("/admin/{id}/accepter")
-    public ResponseEntity<?> accepterReactivation(@PathVariable Integer id) {
-        try { return ResponseEntity.ok(publicationService.accepterReactivation(id)); }
-        catch (IllegalStateException e) { return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
-        catch (RuntimeException e)      { return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); }
-    }
-
-    /** POST /api/publications/admin/{id}/refuser → ARCHIVED */
-    @PostMapping("/admin/{id}/refuser")
-    public ResponseEntity<?> refuserReactivation(@PathVariable Integer id) {
-        try { return ResponseEntity.ok(publicationService.refuserReactivation(id)); }
-        catch (IllegalStateException e) { return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
-        catch (RuntimeException e)      { return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); }
-    }
-
+    // ── CRUD ─────────────────────────────────────────────────────────
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
