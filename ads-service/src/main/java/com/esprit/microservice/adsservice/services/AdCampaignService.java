@@ -9,6 +9,7 @@ import com.esprit.microservice.adsservice.entities.RoleType;
 import com.esprit.microservice.adsservice.exception.BadRequestException;
 import com.esprit.microservice.adsservice.exception.ResourceNotFoundException;
 import com.esprit.microservice.adsservice.kafka.KafkaProducerService;
+import com.esprit.microservice.adsservice.rag.AdVectorService;
 import com.esprit.microservice.adsservice.repositories.AdCampaignRepository;
 import com.esprit.microservice.adsservice.repositories.AdPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class AdCampaignService {
     private final AdPlanRepository planRepository;
     private final OllamaModerationService moderationService;
     private final KafkaProducerService kafkaProducerService;
+    private final AdVectorService adVectorService;
 
     @Transactional
     public AdCampaign createCampaign(CreateCampaignRequest request, Long userId) {
@@ -95,6 +97,9 @@ public class AdCampaignService {
             );
             log.info("AI moderation initiated for campaign ID: {}", savedCampaign.getId());
             
+            // Index ad in vector DB for RAG
+            adVectorService.indexAd(savedCampaign);
+            
             return savedCampaign;
         } catch (DataIntegrityViolationException e) {
             log.error("Database integrity error while saving campaign: {}", e.getMessage(), e);
@@ -148,6 +153,7 @@ public class AdCampaignService {
     public void deleteCampaign(Long id) {
         AdCampaign campaign = findById(id);
         campaignRepository.delete(campaign);
+        adVectorService.removeAd(id);
     }
 
     @Transactional
@@ -190,6 +196,9 @@ public class AdCampaignService {
             userId
         );
         log.info("AI moderation re-initiated for updated campaign ID: {}", updatedCampaign.getId());
+        
+        // Re-index updated ad in vector DB
+        adVectorService.indexAd(updatedCampaign);
         
         return updatedCampaign;
     }

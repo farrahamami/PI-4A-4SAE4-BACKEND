@@ -135,9 +135,21 @@
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - clickhouse
+
+  # --- VECTOR DB (QDRANT) ---
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: always
+    ports:
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
 volumes:
   ads_data:
   ollama_storage:
   clickhouse_data:
   sonar_data:
   grafana_data:
+  qdrant_data:
