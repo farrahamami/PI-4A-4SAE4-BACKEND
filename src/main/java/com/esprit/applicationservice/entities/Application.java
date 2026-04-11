@@ -24,6 +24,8 @@ public class Application {
     @Column(name = "cover_letter_url")
     private String coverLetterUrl;
 
+    @Column(nullable = false)
+    private boolean accepted = false;
 
     @Column(updatable = false)
     private LocalDateTime appliedAt;

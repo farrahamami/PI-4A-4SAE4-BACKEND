@@ -75,6 +75,13 @@ public class ApplicationService {
     public List<Application> getByProject(Long projectId) {
         return applicationRepo.findByProjectId(projectId);
     }
+    public Application acceptApplication(Long applicationId) {
+        Application app = applicationRepo.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
+        app.setAccepted(true);
+        log.info("✅ Application accepted: id={}", applicationId);
+        return applicationRepo.save(app);
+    }
 
     public String uploadCoverLetter(Long freelancerId, MultipartFile file) throws IOException {
         Path uploadPath = coverLetterPath();

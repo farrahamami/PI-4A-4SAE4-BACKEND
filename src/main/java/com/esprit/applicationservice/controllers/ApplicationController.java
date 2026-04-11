@@ -40,6 +40,10 @@ public class ApplicationController {
     public ResponseEntity<List<Application>> getByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(applicationService.getByProject(projectId));
     }
+    @PatchMapping("/{id}/accept")
+    public ResponseEntity<Application> accept(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationService.acceptApplication(id));
+    }
 
     @PostMapping(value = "/cover-letter/upload/{freelancerId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> uploadCoverLetter(@PathVariable Long freelancerId,
