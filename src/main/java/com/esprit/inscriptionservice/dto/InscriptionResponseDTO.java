@@ -23,6 +23,7 @@ public class InscriptionResponseDTO {
     private String eventTitle;
     private LocalDateTime eventStartDate;
     private String eventLocation;
+    private LocalDateTime waitlistDate;
 
     public InscriptionResponseDTO() {}
 
@@ -73,4 +74,12 @@ public class InscriptionResponseDTO {
 
     public String getEventLocation() { return eventLocation; }
     public void setEventLocation(String eventLocation) { this.eventLocation = eventLocation; }
+
+    public LocalDateTime getWaitlistDate() {
+        return waitlistDate;
+    }
+
+    public void setWaitlistDate(LocalDateTime waitlistDate) {
+        this.waitlistDate = waitlistDate;
+    }
 }

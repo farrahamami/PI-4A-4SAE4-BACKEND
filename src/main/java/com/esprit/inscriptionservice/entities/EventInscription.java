@@ -38,6 +38,11 @@ public class EventInscription {
     @Column(name = "event_id")
     private Long eventId;
 
+    @Column(name = "waitlist_date")
+    private LocalDateTime waitlistDate;
+
+
+
     public EventInscription() {}
 
     public Long getId() { return id; }
@@ -66,4 +71,6 @@ public class EventInscription {
     public void setUserId(Long userId) { this.userId = userId; }
     public Long getEventId() { return eventId; }
     public void setEventId(Long eventId) { this.eventId = eventId; }
+    public LocalDateTime getWaitlistDate() { return waitlistDate; }
+    public void setWaitlistDate(LocalDateTime waitlistDate) { this.waitlistDate = waitlistDate; }
 }

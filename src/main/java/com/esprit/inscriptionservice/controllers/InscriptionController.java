@@ -83,4 +83,32 @@ public class InscriptionController {
     public ResponseEntity<Boolean> isEventFull(@PathVariable Long eventId) {
         return ResponseEntity.ok(inscriptionService.isEventFull(eventId));
     }
+
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancel(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(inscriptionService.cancelInscription(id));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        }
+    }
+
+    // View the ordered waitlist for an event
+    @GetMapping("/event/{eventId}/waitlist")
+    public ResponseEntity<List<InscriptionResponseDTO>> getWaitlist(@PathVariable Long eventId) {
+        return ResponseEntity.ok(inscriptionService.getWaitlistByEvent(eventId));
+    }
+
+    // Admin increases capacity → triggers FIFO promotions automatically
+    @PutMapping("/event/{eventId}/capacity")
+    public ResponseEntity<?> increaseCapacity(
+            @PathVariable Long eventId,
+            @RequestParam int newCapacity) {
+        try {
+            inscriptionService.handleCapacityIncrease(eventId, newCapacity);
+            return ResponseEntity.ok(inscriptionService.getCapacityStatus(eventId));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        }
+    }
 }
