@@ -1,7 +1,7 @@
 package com.esprit.microservice.adsservice.rag;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -14,13 +14,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class RagService {
 
     private final OllamaEmbeddingService embeddingService;
     private final QdrantService qdrantService;
     private final RestTemplate restTemplate;
+
+    public RagService(OllamaEmbeddingService embeddingService, QdrantService qdrantService,
+                      @Qualifier("ragRestTemplate") RestTemplate restTemplate) {
+        this.embeddingService = embeddingService;
+        this.qdrantService = qdrantService;
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
     private String ollamaBaseUrl;

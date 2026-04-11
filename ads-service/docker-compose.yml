@@ -29,7 +29,7 @@
     image: ollama/ollama:latest
     container_name: ollama
     ports:
-      - "11434:11434"
+      - "11435:11434" # Changed to avoid conflict with native Ollama
     volumes:
       - ollama_storage:/root/.ollama
     environment:

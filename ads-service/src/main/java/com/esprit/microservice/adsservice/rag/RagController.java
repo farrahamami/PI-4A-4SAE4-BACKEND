@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RagController {
 
     private final RagService ragService;
+    private final OllamaEmbeddingService embeddingService;
 
     @PostMapping("/ask")
     public ResponseEntity<RagService.RagResponse> ask(@RequestBody AskRequest request) {
@@ -28,7 +29,7 @@ public class RagController {
     public ResponseEntity<java.util.Map<String, Object>> debugEmbed(@RequestBody AskRequest request) {
         try {
             java.util.List<Float> embedding = ragService.debugEmbed(request.getQuestion());
-            return ResponseEntity.ok(java.util.Map.of("size", embedding.size(), "success", !embedding.isEmpty()));
+            return ResponseEntity.ok(java.util.Map.of("size", embedding.size(), "success", !embedding.isEmpty(), "lastError", embeddingService.getLastError()));
         } catch (Exception e) {
             return ResponseEntity.ok(java.util.Map.of("error", e.getMessage(), "success", false));
         }

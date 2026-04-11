@@ -1,7 +1,7 @@
 package com.esprit.microservice.adsservice.rag;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -13,11 +13,14 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class OllamaEmbeddingService {
 
     private final RestTemplate restTemplate;
+
+    public OllamaEmbeddingService(@Qualifier("ragRestTemplate") RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
     private String ollamaBaseUrl;
@@ -25,11 +28,16 @@ public class OllamaEmbeddingService {
     @Value("${rag.embedding.model:nomic-embed-text}")
     private String embeddingModel;
 
+    private volatile String lastError = "none";
+
+    public String getLastError() { return lastError; }
+
     @SuppressWarnings("unchecked")
     public List<Float> embed(String text) {
         try {
             String url = ollamaBaseUrl.trim() + "/api/embed";
-            log.info("[EMBEDDING] Calling {} with model '{}'", url, embeddingModel);
+            log.info("[EMBEDDING] Calling {} with model '{}' (interceptors: {})",
+                    url, embeddingModel, restTemplate.getInterceptors().size());
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -50,14 +58,19 @@ public class OllamaEmbeddingService {
                             .toList();
                     log.info("[EMBEDDING] Generated embedding of size {} for text: {}...",
                             vector.size(), text.substring(0, Math.min(50, text.length())));
+                    lastError = "none";
                     return vector;
                 }
+                lastError = "Response had no embeddings field. Keys: " + result.keySet();
+            } else {
+                lastError = "Null response from Ollama";
             }
 
             log.error("[EMBEDDING] Unexpected response: {}", result);
             return List.of();
 
         } catch (Exception e) {
+            lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
             log.error("[EMBEDDING] Error generating embedding: {}", e.getMessage(), e);
             return List.of();
         }
