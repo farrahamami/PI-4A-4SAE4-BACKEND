@@ -11,6 +11,7 @@ import com.esprit.microservice.adsservice.entities.RoleType;
 import com.esprit.microservice.adsservice.exception.BadRequestException;
 import com.esprit.microservice.adsservice.exception.ResourceNotFoundException;
 import com.esprit.microservice.adsservice.kafka.KafkaProducerService;
+import com.esprit.microservice.adsservice.rag.AdVectorService;
 import com.esprit.microservice.adsservice.repositories.AdCampaignRepository;
 import com.esprit.microservice.adsservice.repositories.AdPlanRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,6 +52,9 @@ class AdCampaignServiceTest {
 
     @Mock
     private KafkaProducerService kafkaProducerService;
+
+    @Mock
+    private AdVectorService adVectorService;
 
     @InjectMocks
     private AdCampaignService adCampaignService;
@@ -95,6 +100,9 @@ class AdCampaignServiceTest {
                 .planId(1L)
                 .roleType("FREELANCER")
                 .build();
+
+        lenient().doNothing().when(adVectorService).indexAd(any(AdCampaign.class));
+        lenient().doNothing().when(adVectorService).removeAd(anyLong());
     }
 
     // ── createCampaign tests ──
