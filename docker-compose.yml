@@ -3,14 +3,14 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: mysql
+    container_name: dev-mysql
     ports:
-      - "3306:3306"
+      - "3307:3306"  # port différent pour ne pas conflit avec le projet web
     environment:
       MYSQL_ROOT_PASSWORD: ""
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - dev_mysql_data:/var/lib/mysql
     networks:
       - microservices-net
     healthcheck:
@@ -24,11 +24,11 @@ services:
 
   eureka-server:
     build:
-      context: ./backend/eureka-server
+      context: ./eureka-server
       dockerfile: Dockerfile
-    container_name: eureka-server
+    container_name: dev-eureka-server
     ports:
-      - "8761:8761"
+      - "8762:8761"  # port différent du projet web
     networks:
       - microservices-net
     healthcheck:
@@ -42,11 +42,11 @@ services:
 
   api-gateway:
     build:
-      context: ./backend/api-gateway
+      context: ./api-gateway
       dockerfile: Dockerfile
-    container_name: api-gateway
+    container_name: dev-api-gateway
     ports:
-      - "8222:8222"
+      - "8223:8222"  # port différent du projet web
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_here_change_in_production}
@@ -61,13 +61,13 @@ services:
 
   user-service:
     build:
-      context: ./backend/user-service
+      context: ./user-service
       dockerfile: Dockerfile
-    container_name: user-service
+    container_name: dev-user-service
     ports:
-      - "8081:8081"
+      - "8091:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/web_users?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_users?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -85,13 +85,13 @@ services:
 
   publication-service:
     build:
-      context: ./backend/publication-service
+      context: ./publication-service
       dockerfile: Dockerfile
-    container_name: publication-service
+    container_name: dev-publication-service
     ports:
-      - "8082:8082"
+      - "8092:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/web_publication?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_publication?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -109,13 +109,13 @@ services:
 
   commentaire-service:
     build:
-      context: ./backend/commentaire-service
+      context: ./commentaire-service
       dockerfile: Dockerfile
-    container_name: commentaire-service
+    container_name: dev-commentaire-service
     ports:
-      - "8083:8083"
+      - "8093:8083"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/web_commentaire?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_commentaire?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -133,13 +133,13 @@ services:
 
   reaction-service:
     build:
-      context: ./backend/reaction-service
+      context: ./reaction-service
       dockerfile: Dockerfile
-    container_name: reaction-service
+    container_name: dev-reaction-service
     ports:
-      - "8084:8084"
+      - "8094:8084"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/web_reaction?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_reaction?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -153,4 +153,59 @@ services:
       - microservices-net
     restart: unless-stopped
 
-  
+  # ========================= PROMO SERVICE =========================
+
+  promo-service:
+    build:
+      context: ./promo-service
+      dockerfile: Dockerfile
+    container_name: dev-promo-service
+    ports:
+      - "8095:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_promo?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_here_change_in_production}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # ========================= SUBSCRIPTION SERVICE =========================
+
+  subscription-service:
+    build:
+      context: ./subscription-service
+      dockerfile: Dockerfile
+    container_name: dev-subscription-service
+    ports:
+      - "8096:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_subscription?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_here_change_in_production}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+# ========================= VOLUMES & NETWORKS =========================
+
+volumes:
+  dev_mysql_data:
+
+networks:
+  microservices-net:
+    driver: bridge
