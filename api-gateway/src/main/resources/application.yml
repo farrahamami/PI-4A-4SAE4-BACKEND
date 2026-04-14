@@ -3,8 +3,6 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      # ✅ CORS géré ICI dans la Gateway — ne pas le configurer dans les microservices
-      # Le navigateur parle à la Gateway, donc c'est elle qui doit répondre aux preflight OPTIONS
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -77,6 +75,43 @@ spring:
         - id: reaction-service
           uri: lb://reaction-service
           predicates: [Path=/api/reactions/**]
+          filters: [StripPrefix=0]
+
+          # ── SUBSCRIPTION SERVICE ──────────────────────────────────
+        - id: subscription-service-plans
+          uri: lb://subscription-service
+          predicates: [Path=/api/subscriptions/**]
+          filters: [StripPrefix=0]
+
+        - id: subscription-service-user-subs
+          uri: lb://subscription-service
+          predicates: [Path=/api/user-subscriptions/**]
+          filters: [StripPrefix=0]
+
+        - id: subscription-service-stats
+          uri: lb://subscription-service
+          predicates: [Path=/api/stats/**]
+          filters: [StripPrefix=0]
+
+        - id: subscription-service-churn
+          uri: lb://subscription-service
+          predicates: [Path=/api/churn-prediction/**]
+          filters: [StripPrefix=0]
+
+        - id: subscription-service-recommendations
+          uri: lb://subscription-service
+          predicates: [Path=/api/recommendations/**]
+          filters: [StripPrefix=0]
+
+        # ── PROMO SERVICE ─────────────────────────────────────────
+        - id: promo-service-promos
+          uri: lb://promo-service
+          predicates: [Path=/api/promos/**]
+          filters: [StripPrefix=0]
+
+        - id: promo-service-payments
+          uri: lb://promo-service
+          predicates: [Path=/api/payments/**]
           filters: [StripPrefix=0]
 
 server:
