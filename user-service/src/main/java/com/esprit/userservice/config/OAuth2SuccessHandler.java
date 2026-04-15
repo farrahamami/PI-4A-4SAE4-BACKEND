@@ -47,7 +47,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         // ── Use YOUR JwtService signature: generateToken(email, role) ──
         String role  = user.getRole() != null ? user.getRole().name() : "CLIENT";
-        String token = jwtService.generateToken(user.getEmail(), role);
+        String token = jwtService.generateToken(user.getEmail(), role, user.getId());
 
         String name  = user.getName()     != null ? user.getName()     : "";
         String lName = user.getLastName() != null ? user.getLastName() : "";
