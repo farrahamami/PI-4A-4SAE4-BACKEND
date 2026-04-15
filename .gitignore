@@ -1,0 +1,3 @@
+user-service/src/main/resources/application.properties 
+**/target/ 
+**/uploads/ 
