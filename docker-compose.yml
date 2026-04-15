@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+
   # ========================= INFRASTRUCTURE =========================
 
   mysql:
@@ -93,7 +94,7 @@ services:
     networks:
       - microservices-net
 
-  # ========================= PUBLICATION SERVICE =========================
+  # ========================= OTHER TEAM SERVICES (not started by default) =========================
 
   publication-service:
     build:
@@ -113,8 +114,6 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_APPLICATION_NAME: user-service
       JWT_SECRET: super-secret-key-that-is-at-least-32-chars!
     depends_on:
       mysql:
@@ -123,8 +122,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= COMMENTAIRE SERVICE =========================
 
   commentaire-service:
     build:
@@ -144,8 +141,6 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_APPLICATION_NAME: user-service
       JWT_SECRET: super-secret-key-that-is-at-least-32-chars!
     depends_on:
       mysql:
@@ -154,8 +149,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= REACTION SERVICE =========================
 
   reaction-service:
     build:
@@ -175,8 +168,6 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_APPLICATION_NAME: user-service
       JWT_SECRET: super-secret-key-that-is-at-least-32-chars!
     depends_on:
       mysql:
@@ -185,8 +176,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= PROMO SERVICE =========================
 
   promo-service:
     build:
@@ -206,8 +195,6 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_APPLICATION_NAME: user-service
       JWT_SECRET: super-secret-key-that-is-at-least-32-chars!
     depends_on:
       mysql:
@@ -216,8 +203,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= SUBSCRIPTION SERVICE =========================
 
   subscription-service:
     build:
@@ -237,8 +222,6 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      SPRING_APPLICATION_NAME: user-service
       JWT_SECRET: super-secret-key-that-is-at-least-32-chars!
     depends_on:
       mysql:
@@ -247,8 +230,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= SKILL SERVICE =========================
 
   skill-service:
     build:
@@ -260,13 +241,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_skill?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -275,8 +249,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= PROJECT SERVICE =========================
 
   project-service:
     build:
@@ -288,13 +260,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_project?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -303,8 +268,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= APPLICATION SERVICE =========================
 
   application-service:
     build:
@@ -316,13 +279,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_application?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -331,8 +287,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= EVENT SERVICE =========================
 
   event-service:
     build:
@@ -344,13 +298,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_event?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -359,8 +306,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= ACTIVITY SERVICE =========================
 
   activity-service:
     build:
@@ -372,13 +317,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_activity?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -387,8 +325,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= INSCRIPTION SERVICE =========================
 
   inscription-service:
     build:
@@ -400,13 +336,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_inscription?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -415,8 +344,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-
-  # ========================= RECOMMANDATION SERVICE =========================
 
   recommandation-service:
     build:
@@ -428,13 +355,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_recommandation?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
-      SPRING_MAIL_HOST: smtp.gmail.com
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: dummy@gmail.com
-      SPRING_MAIL_PASSWORD: dummypassword
-      GROQ_API_KEY: dummy_groq_key_for_testing
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: dummy_client_id
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: dummy_client_secret
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     depends_on:
       mysql:
@@ -444,9 +364,8 @@ services:
     networks:
       - microservices-net
 
-
   # ========================= ADS SERVICE INFRASTRUCTURE =========================
-  
+
   ads-db:
     image: postgres:15-alpine
     container_name: dev-ads-postgres
@@ -486,6 +405,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     networks:
       - microservices-net
 
@@ -499,8 +419,122 @@ services:
     networks:
       - microservices-net
 
+  # Optimized for low RAM: flash attention, single model, 1024 context window
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dev-ollama
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: 24h
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_FLASH_ATTENTION: 1
+      OLLAMA_MAX_LOADED_MODELS: 1
+      OLLAMA_NUM_CTX: 1024
+    networks:
+      - microservices-net
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: dev-clickhouse
+    depends_on:
+      - kafka
+    ports:
+      - "8123:8123"
+      - "9005:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./ads-service/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./ads-service/clickhouse/users.xml:/etc/clickhouse-server/users.d/default-user.xml
+    environment:
+      CLICKHOUSE_DB: ads_analytics
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - microservices-net
+
+  grafana:
+    build:
+      context: ./ads-service/grafana
+    container_name: dev-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ads-service/grafana/provisioning:/etc/grafana/provisioning
+      - ./ads-service/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - clickhouse
+    networks:
+      - microservices-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: dev-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - microservices-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: dev-ads-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: fawzi-admin@pidev4sae4.com
+      PGADMIN_DEFAULT_PASSWORD: fawzi
+    ports:
+      - "5050:80"
+    depends_on:
+      - ads-db
+    networks:
+      - microservices-net
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: dev-sonarqube
+    depends_on:
+      - sonar-db
+    ports:
+      - "9001:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    networks:
+      - microservices-net
+
+  sonar-db:
+    image: postgres:15-alpine
+    container_name: dev-sonar-postgres
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    ports:
+      - "5433:5432"
+    volumes:
+      - sonar_data:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+
   # ========================= ADS SERVICE =========================
-  
+
   ads-service:
     build:
       context: ./ads-service
@@ -513,9 +547,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ads_pass
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: 6333
-      SPRING_AI_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      QDRANT_URL: http://qdrant:6333
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
       JWT_SECRET: super-secret-key-that-is-at-least-32-chars!
     depends_on:
       ads-db:
@@ -528,8 +561,6 @@ services:
         condition: service_started
     networks:
       - microservices-net
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
 # ========================= VOLUMES =========================
 
@@ -537,6 +568,10 @@ volumes:
   dev_mysql_data:
   ads_data:
   qdrant_data:
+  ollama_storage:
+  clickhouse_data:
+  sonar_data:
+  grafana_data:
 
 # ========================= NETWORK =========================
 
