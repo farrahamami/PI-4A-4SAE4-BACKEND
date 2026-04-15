@@ -4,7 +4,7 @@ spring:
   cloud:
     gateway:
       globalcors:
-        corsConfigurations:
+        cors-configurations:
           '[/**]':
             allowedOrigins:
               - "http://localhost:4200"
@@ -54,17 +54,6 @@ spring:
           predicates: [Path=/api/users/**]
           filters: [StripPrefix=0]
 
-        # ── PUBLICATION SERVICE ───────────────────────────────────
-        - id: publication-service
-          uri: lb://publication-service
-          predicates: [Path=/api/publications/**]
-          filters: [StripPrefix=0]
-
-        - id: publication-uploads
-          uri: lb://publication-service
-          predicates: [Path=/uploads/**]
-          filters: [StripPrefix=0]
-
         # ── COMMENTAIRE SERVICE ───────────────────────────────────
         - id: commentaire-service
           uri: lb://commentaire-service
@@ -77,7 +66,7 @@ spring:
           predicates: [Path=/api/reactions/**]
           filters: [StripPrefix=0]
 
-          # ── SUBSCRIPTION SERVICE ──────────────────────────────────
+        # ── SUBSCRIPTION SERVICE ──────────────────────────────────
         - id: subscription-service-plans
           uri: lb://subscription-service
           predicates: [Path=/api/subscriptions/**]
@@ -112,6 +101,78 @@ spring:
         - id: promo-service-payments
           uri: lb://promo-service
           predicates: [Path=/api/payments/**]
+          filters: [StripPrefix=0]
+
+        # ── PROJECT SERVICE ───────────────────────────────────────
+        - id: project-service
+          uri: lb://project-service
+          predicates: [Path=/api/projects/**]
+          filters: [StripPrefix=0]
+
+        # ── APPLICATION SERVICE ───────────────────────────────────
+        - id: application-service
+          uri: lb://application-service
+          predicates: [Path=/api/applications/**]
+          filters: [StripPrefix=0]
+
+        - id: application-service-uploads
+          uri: lb://application-service
+          predicates: [Path=/uploads/cover-letters/**]
+          filters: [StripPrefix=0]
+
+        # ── SKILL SERVICE ─────────────────────────────────────────
+        - id: skill-service
+          uri: lb://skill-service
+          predicates: [Path=/api/skills/**]
+          filters: [StripPrefix=0]
+
+        - id: skill-service-uploads
+          uri: lb://skill-service
+          predicates: [Path=/uploads/resumes/**]
+          filters: [StripPrefix=0]
+
+        # ── PUBLICATION SERVICE ───────────────────────────────────
+        - id: publication-service
+          uri: lb://publication-service
+          predicates: [Path=/api/publications/**]
+          filters: [StripPrefix=0]
+
+        - id: publication-uploads
+          uri: lb://publication-service
+          predicates: [Path=/uploads/**]
+          filters: [StripPrefix=0]
+
+        # ── EVENT SERVICE ─────────────────────────────────────────
+        - id: event-service
+          uri: lb://event-service
+          predicates: [Path=/api/events/**]
+          filters: [StripPrefix=0]
+
+        - id: event-service-public
+          uri: lb://event-service
+          predicates: [Path=/api/public-events/**]
+          filters: [StripPrefix=0]
+
+        # ── INSCRIPTION SERVICE ───────────────────────────────────
+        - id: inscription-service
+          uri: lb://inscription-service
+          predicates: [Path=/api/inscriptions/**]
+          filters: [StripPrefix=0]
+
+        - id: inscription-service-public
+          uri: lb://inscription-service
+          predicates: [Path=/api/inscriptions-public/**]
+          filters: [StripPrefix=0]
+
+        # ── ACTIVITY SERVICE ──────────────────────────────────────
+        - id: activity-service
+          uri: lb://activity-service
+          predicates: [Path=/api/activities/**]
+          filters: [StripPrefix=0]
+
+        - id: activity-service-public
+          uri: lb://activity-service
+          predicates: [Path=/api/activities-public/**]
           filters: [StripPrefix=0]
 
 server:

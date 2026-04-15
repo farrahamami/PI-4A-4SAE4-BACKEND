@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # ========================= INFRASTRUCTURE =========================
 
@@ -5,7 +7,7 @@ services:
     image: mysql:8.0
     container_name: dev-mysql
     ports:
-      - "3307:3306"  # port différent pour ne pas conflit avec le projet web
+      - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ""
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
@@ -25,10 +27,9 @@ services:
   eureka-server:
     build:
       context: ./eureka-server
-      dockerfile: Dockerfile
     container_name: dev-eureka-server
     ports:
-      - "8762:8761"  # port différent du projet web
+      - "8762:8761"
     networks:
       - microservices-net
     healthcheck:
@@ -43,10 +44,9 @@ services:
   api-gateway:
     build:
       context: ./api-gateway
-      dockerfile: Dockerfile
     container_name: dev-api-gateway
     ports:
-      - "8223:8222"  # port différent du projet web
+      - "8223:8222"
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_here_change_in_production}
@@ -62,12 +62,11 @@ services:
   user-service:
     build:
       context: ./user-service
-      dockerfile: Dockerfile
     container_name: dev-user-service
     ports:
       - "8091:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_users?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_users?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -79,19 +78,17 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-    restart: unless-stopped
 
   # ========================= PUBLICATION SERVICE =========================
 
   publication-service:
     build:
       context: ./publication-service
-      dockerfile: Dockerfile
     container_name: dev-publication-service
     ports:
       - "8092:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_publication?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_publication?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -103,19 +100,17 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-    restart: unless-stopped
 
   # ========================= COMMENTAIRE SERVICE =========================
 
   commentaire-service:
     build:
       context: ./commentaire-service
-      dockerfile: Dockerfile
     container_name: dev-commentaire-service
     ports:
       - "8093:8083"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_commentaire?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_commentaire?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -127,19 +122,17 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-    restart: unless-stopped
 
   # ========================= REACTION SERVICE =========================
 
   reaction-service:
     build:
       context: ./reaction-service
-      dockerfile: Dockerfile
     container_name: dev-reaction-service
     ports:
       - "8094:8084"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_reaction?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_reaction?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -151,19 +144,17 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-    restart: unless-stopped
 
   # ========================= PROMO SERVICE =========================
 
   promo-service:
     build:
       context: ./promo-service
-      dockerfile: Dockerfile
     container_name: dev-promo-service
     ports:
       - "8095:8085"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_promo?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_promo?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -175,19 +166,17 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-    restart: unless-stopped
 
   # ========================= SUBSCRIPTION SERVICE =========================
 
   subscription-service:
     build:
       context: ./subscription-service
-      dockerfile: Dockerfile
     container_name: dev-subscription-service
     ports:
       - "8096:8086"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_subscription?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_subscription?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ""
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -199,12 +188,160 @@ services:
         condition: service_healthy
     networks:
       - microservices-net
-    restart: unless-stopped
 
-# ========================= VOLUMES & NETWORKS =========================
+  # ========================= SKILL SERVICE =========================
+
+  skill-service:
+    build:
+      context: ./skill-service
+    container_name: dev-skill-service
+    ports:
+      - "8097:8096"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_skill?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  # ========================= PROJECT SERVICE =========================
+
+  project-service:
+    build:
+      context: ./project-service
+    container_name: dev-project-service
+    ports:
+      - "8098:8094"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_project?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  # ========================= APPLICATION SERVICE =========================
+
+  application-service:
+    build:
+      context: ./application-service
+    container_name: dev-application-service
+    ports:
+      - "8099:8095"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_application?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  # ========================= EVENT SERVICE =========================
+
+  event-service:
+    build:
+      context: ./event-service
+    container_name: dev-event-service
+    ports:
+      - "8100:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_event?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  # ========================= ACTIVITY SERVICE =========================
+
+  activity-service:
+    build:
+      context: ./activity-service
+    container_name: dev-activity-service
+    ports:
+      - "8101:8093"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_activity?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  # ========================= INSCRIPTION SERVICE =========================
+
+  inscription-service:
+    build:
+      context: ./inscription-service
+    container_name: dev-inscription-service
+    ports:
+      - "8102:8097"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_inscription?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  # ========================= RECOMMANDATION SERVICE =========================
+
+  recommandation-service:
+    build:
+      context: ./recommandation-service
+    container_name: dev-recommandation-service
+    ports:
+      - "8103:8098"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/dev_recommandation?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+# ========================= VOLUMES =========================
 
 volumes:
   dev_mysql_data:
+
+# ========================= NETWORK =========================
 
 networks:
   microservices-net:
