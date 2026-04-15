@@ -37,6 +37,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <dependencyManagement>
@@ -59,6 +60,7 @@
                 <configuration>
                     <mainClass>com.esprit.eurekaserver.EurekaServerApplication</mainClass>
                 </configuration>
+
             </plugin>
         </plugins>
     </build>

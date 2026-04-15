@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Team-specific ignores ###
+user-service/src/main/resources/application.properties
+**/target/
+**/uploads/
