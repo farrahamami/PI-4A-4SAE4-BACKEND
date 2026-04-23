@@ -22,85 +22,60 @@
     </properties>
 
     <dependencies>
-
-        <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
-        <!-- JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
-
-        <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
-        <!-- MySQL -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Eureka Client -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
-
-        <!-- OpenFeign -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
-
-        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-
-        <!-- SpringDoc Swagger -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.3.0</version>
         </dependency>
-
-        <!-- OpenAI -->
         <dependency>
             <groupId>com.theokanning.openai-gpt3-java</groupId>
             <artifactId>service</artifactId>
             <version>0.18.2</version>
         </dependency>
-
-        <!-- Commons Math3 (similarité cosinus pour les vecteurs) -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
         </dependency>
-
-        <!-- Jackson Java Time (LocalDateTime) -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
-
-        <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <dependencyManagement>
@@ -130,10 +105,13 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+            <!-- Spring Boot : mainClass ajoutée ici ✅ -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>tn.esprit.microservice.subscriptionservice.SubscriptionServiceApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -142,7 +120,8 @@
                     </excludes>
                 </configuration>
             </plugin>
-        <!-- JaCoCo -->
+
+            <!-- JaCoCo : une seule déclaration ✅ -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -163,56 +142,18 @@
                         <exclude>**/dto/**</exclude>
                         <exclude>**/config/**</exclude>
                         <exclude>**/*Application.class</exclude>
-                        <exclude>**/Entity/**</exclude>
                         <exclude>**/entities/**</exclude>
                         <exclude>**/enums/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
 
-            <!-- SonarQube -->
+            <!-- SonarQube : une seule déclaration ✅ -->
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>4.0.0.4121</version>
             </plugin>
-        <!-- JaCoCo : mesure du test coverage -->
-<plugin>
-    <groupId>org.jacoco</groupId>
-    <artifactId>jacoco-maven-plugin</artifactId>
-    <version>0.8.12</version>
-    <executions>
-        <execution>
-            <id>prepare-agent</id>
-            <goals>
-                <goal>prepare-agent</goal>
-            </goals>
-        </execution>
-        <execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-                <goal>report</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <excludes>
-            <exclude>**/dto/**</exclude>
-            <exclude>**/config/**</exclude>
-            <exclude>**/*Application.class</exclude>
-            <exclude>**/entities/**</exclude>
-            <exclude>**/enums/**</exclude>
-        </excludes>
-    </configuration>
-</plugin>
-
-<!-- SonarQube scanner -->
-<plugin>
-    <groupId>org.sonarsource.scanner.maven</groupId>
-    <artifactId>sonar-maven-plugin</artifactId>
-    <version>4.0.0.4121</version>
-</plugin>
         </plugins>
     </build>
 
