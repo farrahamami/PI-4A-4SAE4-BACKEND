@@ -85,48 +85,7 @@ pipeline {
                     '''
                 }
             }
-        }
-stage('🔒 Trivy Security Scan') {
-            steps {
-                script {
-                    sh '''
-                        echo "=========================================="
-                        echo "Scan de securite de l image Docker"
-                        echo "=========================================="
-
-                        # Un seul scan, optimisé : pas de secrets, cache utilise
-                        trivy image \
-                            --severity HIGH,CRITICAL \
-                            --scanners vuln \
-                            --no-progress \
-                            --skip-db-update \
-                            --skip-java-db-update \
-                            --format table \
-                            ${IMAGE_NAME}:${IMAGE_TAG}
-
-                        # Generer le rapport JSON separement (rapide car tout est en cache)
-                        trivy image \
-                            --severity HIGH,CRITICAL \
-                            --scanners vuln \
-                            --no-progress \
-                            --skip-db-update \
-                            --skip-java-db-update \
-                            --format json \
-                            --output trivy-report.json \
-                            ${IMAGE_NAME}:${IMAGE_TAG}
-
-                        echo "Scan de securite termine"
-                    '''
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'trivy-report.json',
-                                     allowEmptyArchive: true
-                }
-            }
-        }
-                        
+        }                  
         stage('📤 Docker Push') {
             steps {
                 withCredentials([usernamePassword(
