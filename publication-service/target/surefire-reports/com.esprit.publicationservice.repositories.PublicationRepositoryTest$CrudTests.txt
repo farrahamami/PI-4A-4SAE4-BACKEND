@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.esprit.publicationservice.repositories.PublicationRepositoryTest$CrudTests
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.459 s -- in com.esprit.publicationservice.repositories.PublicationRepositoryTest$CrudTests

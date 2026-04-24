@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.esprit.reactionservice.controllers.ReactionControllerTest$GetSummaryTests
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 16.45 s -- in com.esprit.reactionservice.controllers.ReactionControllerTest$GetSummaryTests

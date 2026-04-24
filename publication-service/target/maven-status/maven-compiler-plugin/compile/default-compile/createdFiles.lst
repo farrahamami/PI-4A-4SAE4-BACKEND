@@ -1,10 +1,12 @@
 com\esprit\publicationservice\dto\UserDTO.class
 com\esprit\publicationservice\controllers\PublicationController.class
-com\esprit\publicationservice\clients\UserClient.class
+com\esprit\publicationservice\entities\StatutPublication.class
 com\esprit\publicationservice\services\PublicationService.class
 com\esprit\publicationservice\config\SecurityConfig.class
 com\esprit\publicationservice\repositories\PublicationRepository.class
 com\esprit\publicationservice\config\WebConfig.class
+com\esprit\publicationservice\clients\UserClient.class
+com\esprit\publicationservice\dto\UserBlockDTO.class
 com\esprit\publicationservice\entities\Publication.class
 com\esprit\publicationservice\entities\TypePublication.class
 com\esprit\publicationservice\PublicationServiceApplication.class
