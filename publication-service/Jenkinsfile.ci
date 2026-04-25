@@ -7,15 +7,17 @@ pipeline {
     }
 
     environment {
-        SERVICE_NAME     = 'publication-service'
-        DOCKER_NAMESPACE = 'farahchbeb'
-        IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
-        IMAGE_TAG        = "${env.BUILD_NUMBER}"
-        SONAR_PROJECT    = 'publication-service'
+        SERVICE_NAME      = 'publication-service'
+        DOCKER_NAMESPACE  = 'farahchbeb'
+        IMAGE_NAME        = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
+        IMAGE_TAG         = "${env.BUILD_NUMBER}"
+        SONAR_PROJECT     = 'publication-service'
+        APP_PORT          = '8082'
+        ZAP_CONTAINER     = 'zap-target-publication'
     }
 
     options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 40, unit: 'MINUTES')
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
@@ -85,6 +87,53 @@ pipeline {
             }
         }
 
+        stage('🔒 OWASP ZAP Security Scan') {
+            steps {
+                script {
+                    // Nettoyer un éventuel container résiduel
+                    sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
+
+                    // Démarrer le service en local pour le scan
+                    sh """
+                        docker run -d --name ${ZAP_CONTAINER} \
+                          -p ${APP_PORT}:${APP_PORT} \
+                          ${IMAGE_NAME}:${IMAGE_TAG}
+                        echo "⏳ Attente du démarrage du service..."
+                        sleep 20
+                    """
+
+                    // Créer le dossier de rapport avec les bons droits
+                    sh 'mkdir -p zap-reports && chmod 777 zap-reports'
+
+                    // Lancer le scan ZAP en mode Baseline
+                    sh """
+                        docker run --rm --network host \
+                          -v \$(pwd)/zap-reports:/zap/wrk/:rw \
+                          zaproxy/zap-stable \
+                          zap-baseline.py \
+                          -t http://localhost:${APP_PORT} \
+                          -r zap-report.html \
+                          -x zap-report.xml \
+                          -I
+                    """
+                }
+            }
+            post {
+                always {
+                    sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
+                    publishHTML([
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'zap-reports',
+                        reportFiles: 'zap-report.html',
+                        reportName: "OWASP ZAP Report - ${SERVICE_NAME}"
+                    ])
+                    archiveArtifacts artifacts: 'zap-reports/zap-report.xml', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('📤 Docker Push') {
             steps {
                 withCredentials([usernamePassword(
@@ -116,6 +165,7 @@ pipeline {
         }
         failure {
             echo "❌ CI échoué."
+            sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
         }
         always {
             cleanWs()
