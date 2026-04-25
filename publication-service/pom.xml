@@ -61,6 +61,12 @@
             <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>de.siegmar</groupId>
+            <artifactId>logback-gelf</artifactId>
+            <version>6.0.0</version>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>

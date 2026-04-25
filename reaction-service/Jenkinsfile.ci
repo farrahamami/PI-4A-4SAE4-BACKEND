@@ -94,9 +94,11 @@ pipeline {
                     sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
 
                     // Démarrer le service en local pour le scan
+                    // GRAYLOG_HOST=localhost car Graylog tourne sur la même machine Jenkins
                     sh """
                         docker run -d --name ${ZAP_CONTAINER} \
                           -p ${APP_PORT}:${APP_PORT} \
+                          -e GRAYLOG_HOST=localhost \
                           ${IMAGE_NAME}:${IMAGE_TAG}
                         echo "⏳ Attente du démarrage du service..."
                         sleep 20
