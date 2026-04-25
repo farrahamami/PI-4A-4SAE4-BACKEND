@@ -10,6 +10,10 @@ pipeline {
         // Adresse de Graylog — changer si Graylog tourne dans un container Docker
         // ex: GRAYLOG_HOST = 'graylog' si le container s'appelle 'graylog'
         GRAYLOG_HOST     = 'localhost'
+        // Adresse de Jaeger — injectée dans le container Spring Boot via -e JAEGER_HOST
+        // 'host-gateway' permet au container d'atteindre le localhost du serveur Jenkins
+        JAEGER_HOST      = 'host-gateway'
+        JAEGER_CONTAINER = 'jaeger'
     }
 
     options {
@@ -59,6 +63,39 @@ pipeline {
             }
         }
 
+        stage('🔍 Démarrer Jaeger si absent') {
+            steps {
+                script {
+                    // Vérifie si le container Jaeger tourne déjà
+                    // Si oui → ne fait rien (idempotent : les 3 pipelines CD peuvent tourner sans conflit)
+                    // Si non → démarre Jaeger all-in-one
+                    //   4318 → OTLP HTTP  ← reçoit les traces des 3 microservices Spring Boot
+                    //   16686 → UI web Jaeger → http://localhost:16686
+                    def running = sh(
+                        script: "docker inspect -f '{{.State.Running}}' ${JAEGER_CONTAINER} 2>/dev/null || echo 'absent'",
+                        returnStdout: true
+                    ).trim()
+
+                    if (running != 'true') {
+                        echo "⚙️  Jaeger absent — démarrage du container..."
+                        sh '''
+                            docker run -d \
+                              --name ${JAEGER_CONTAINER} \
+                              --restart unless-stopped \
+                              -p 16686:16686 \
+                              -p 4317:4317 \
+                              -p 4318:4318 \
+                              jaegertracing/all-in-one:1.55
+                            echo "⏳ Attente du démarrage Jaeger..."
+                            sleep 8
+                        '''
+                    } else {
+                        echo "✅ Jaeger déjà en cours d'exécution — aucune action nécessaire."
+                    }
+                }
+            }
+        }
+
         stage('🚀 Démarrer nouveau container') {
             steps {
                 sh '''
@@ -66,7 +103,9 @@ pipeline {
                       --name ${CONTAINER_NAME} \
                       -p ${APP_PORT}:${APP_PORT} \
                       --restart unless-stopped \
+                      --add-host=host-gateway:host-gateway \
                       -e GRAYLOG_HOST=${GRAYLOG_HOST} \
+                      -e JAEGER_HOST=${JAEGER_HOST} \
                       ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
