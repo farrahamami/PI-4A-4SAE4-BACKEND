@@ -32,7 +32,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PublicationServiceTest {
 
-    // ── Mocks injectés automatiquement ──────────────────────────────
     @Mock
     private PublicationRepository publicationRepository;
 
@@ -42,7 +41,6 @@ class PublicationServiceTest {
     @InjectMocks
     private PublicationService publicationService;
 
-    // ── Helper : fabrique une Publication de test ────────────────────
     private Publication makePublication(Integer id, Integer userId, StatutPublication statut) {
         Publication p = new Publication();
         p.setId(id);
@@ -58,7 +56,6 @@ class PublicationServiceTest {
         return p;
     }
 
-    // ── Helper : UserDTO fictif ──────────────────────────────────────
     private UserDTO makeUser(Integer id) {
         UserDTO u = new UserDTO();
         u.setId(id);
@@ -67,9 +64,6 @@ class PublicationServiceTest {
         return u;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  1. isUserBlocked
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("isUserBlocked()")
     class IsUserBlockedTests {
@@ -107,9 +101,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  2. getArchivedCount
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getArchivedCount()")
     class GetArchivedCountTests {
@@ -123,9 +115,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  3. getPublicationById
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getPublicationById()")
     class GetPublicationByIdTests {
@@ -156,9 +146,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  4. getAllPublications
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getAllPublications()")
     class GetAllPublicationsTests {
@@ -190,9 +178,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  5. getPublicationsByUserId
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getPublicationsByUserId()")
     class GetPublicationsByUserIdTests {
@@ -211,9 +197,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  6. getArchivedByUserId
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getArchivedByUserId()")
     class GetArchivedByUserIdTests {
@@ -233,9 +217,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  7. signalerPublication
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("signalerPublication()")
     class SignalerPublicationTests {
@@ -330,9 +312,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  8. deletePublication
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("deletePublication()")
     class DeletePublicationTests {
@@ -372,9 +352,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  9. adminDeletePublication
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("adminDeletePublication()")
     class AdminDeletePublicationTests {
@@ -400,9 +378,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  10. reactiverCompteUser
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("reactiverCompteUser()")
     class ReactiverCompteUserTests {
@@ -419,14 +395,11 @@ class PublicationServiceTest {
 
             publicationService.reactiverCompteUser(5);
 
-            // La publication archivée doit être supprimée
             verify(publicationRepository).delete(archived);
 
-            // Les signalements de la publication active doivent être vidés
             assertThat(active.getSignalements()).isEmpty();
             assertThat(active.getSignalementRaisons()).isEmpty();
 
-            // Les publications actives mises à jour doivent être sauvegardées
             verify(publicationRepository).saveAll(List.of(active));
         }
 
@@ -454,9 +427,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  11. createPublication — validation métier (sans I/O fichier)
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("createPublication() — validations métier")
     class CreatePublicationValidationTests {
@@ -527,9 +498,7 @@ class PublicationServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  12. updatePublication — validation d'autorisation
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("updatePublication() — autorisation")
     class UpdatePublicationAuthorizationTests {

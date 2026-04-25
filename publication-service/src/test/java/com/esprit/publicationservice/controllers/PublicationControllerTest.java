@@ -23,11 +23,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Tests d'intégration de la couche HTTP (contrôleur).
- * @WebMvcTest charge uniquement le contexte web (contrôleurs, filtres, MockMvc).
- * Le service est mocké avec @MockBean → pas de base de données.
- */
+
 @WebMvcTest(PublicationController.class)
 @WithMockUser  // Désactive Spring Security pour tous les tests de cette classe
 class PublicationControllerTest {
@@ -38,7 +34,6 @@ class PublicationControllerTest {
     @MockBean
     private PublicationService publicationService;
 
-    // ── Helper : fabrique une Publication de test ────────────────────
     private Publication makePublication(Integer id, Integer userId) {
         Publication p = new Publication();
         p.setId(id);
@@ -50,9 +45,6 @@ class PublicationControllerTest {
         return p;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("GET /api/publications")
     class GetAllTests {
@@ -82,9 +74,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/admin/all
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/admin/all")
     class GetAllAdminTests {
@@ -104,9 +94,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/{id}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/{id}")
     class GetByIdTests {
@@ -134,9 +122,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/user/{userId}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/user/{userId}")
     class GetByUserTests {
@@ -153,9 +139,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/user/{userId}/archived
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/user/{userId}/archived")
     class GetArchivedByUserTests {
@@ -173,9 +157,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/user/{userId}/block-status
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/user/{userId}/block-status")
     class GetBlockStatusTests {
@@ -205,9 +187,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/admin/blocked-users
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/admin/blocked-users")
     class GetBlockedUsersTests {
@@ -225,9 +205,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  POST /api/publications/{id}/signaler
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("POST /api/publications/{id}/signaler")
     class SignalerTests {
@@ -283,9 +261,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  POST /api/publications/admin/users/{userId}/reactiver-compte
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("POST /api/publications/admin/users/{userId}/reactiver-compte")
     class ReactiverCompteTests {
@@ -313,9 +289,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  DELETE /api/publications/{id}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("DELETE /api/publications/{id}")
     class DeletePublicationTests {
@@ -345,9 +319,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  DELETE /api/publications/admin/{id}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("DELETE /api/publications/admin/{id}")
     class AdminDeletePublicationTests {
@@ -375,9 +347,7 @@ class PublicationControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/publications/type/{type}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/publications/type/{type}")
     class GetByTypeTests {
