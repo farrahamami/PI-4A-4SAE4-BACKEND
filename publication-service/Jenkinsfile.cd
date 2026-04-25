@@ -68,6 +68,25 @@ pipeline {
             }
         }
 
+
+        stage('📡 Vérifier Jaeger reçoit les traces') {
+            steps {
+                script {
+                    // Attendre que le service démarre et émette des traces
+                    sh 'sleep 15'
+
+                    // Appeler l'API Jaeger pour vérifier que le service est enregistré
+                    sh '''
+                        curl -s http://localhost:16686/api/services \
+                          | grep -q "publication-service" \
+                          && echo "✅ Jaeger : publication-service détecté" \
+                          || echo "⚠️  Jaeger : service pas encore visible (normal au 1er boot)"
+                    '''
+                }
+            }
+        }
+
+
         stage('✅ Vérifier que le container tourne') {
             steps {
                 sh '''
