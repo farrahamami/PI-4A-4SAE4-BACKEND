@@ -13,9 +13,6 @@ pipeline {
         IMAGE_TAG         = "${env.BUILD_NUMBER}"
         SONAR_PROJECT     = 'publication-service'
         APP_PORT          = '8082'
-        ZAP_CONTAINER     = 'zap-target-publication'
-        MYSQL_CONTAINER   = 'zap-mysql-publication'
-        ZAP_NETWORK       = 'zap-net-publication'
     }
 
     options {
@@ -81,104 +78,39 @@ pipeline {
             }
         }
 
-        stage('🐳 Docker Build') {
+        // ✅ REMPLACE ZAP — pas besoin de Docker, MySQL ou service démarré
+        stage('🔒 OWASP Dependency-Check') {
             steps {
                 dir('publication-service') {
-                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
-                }
-            }
-        }
-
-        stage('🔒 OWASP ZAP Security Scan') {
-            steps {
-                script {
-                    // 1. Nettoyage complet des ressources précédentes
-                    sh """
-                        docker stop ${ZAP_CONTAINER} ${MYSQL_CONTAINER} 2>/dev/null || true
-                        docker rm   ${ZAP_CONTAINER} ${MYSQL_CONTAINER} 2>/dev/null || true
-                        docker network rm ${ZAP_NETWORK} 2>/dev/null || true
-                    """
-
-                    // 2. Créer un réseau bridge dédié
-                    sh "docker network create ${ZAP_NETWORK}"
-
-                    // 3. Lancer MySQL sur ce réseau (hostname: mysql)
-                    sh """
-                        docker run -d --name ${MYSQL_CONTAINER} \
-                          --network ${ZAP_NETWORK} \
-                          --network-alias mysql \
-                          -e MYSQL_ROOT_PASSWORD=root \
-                          -e MYSQL_DATABASE=pidev_publication \
-                          mysql:8.0 \
-                          --character-set-server=utf8mb4 \
-                          --collation-server=utf8mb4_unicode_ci
-                        echo "⏳ Attente que MySQL soit prêt..."
-                        sleep 20
-                    """
-
-                    // 4. Lancer le service applicatif sur le même réseau
-                    sh """
-                        docker run -d --name ${ZAP_CONTAINER} \
-                          --network ${ZAP_NETWORK} \
-                          -p ${APP_PORT}:${APP_PORT} \
-                          -e GRAYLOG_HOST=localhost \
-                          -e JAEGER_HOST=localhost \
-                          -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/pidev_publication?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC \
-                          -e SPRING_DATASOURCE_USERNAME=root \
-                          -e SPRING_DATASOURCE_PASSWORD=root \
-                          -e EUREKA_CLIENT_ENABLED=false \
-                          -e SPRING_CLOUD_DISCOVERY_ENABLED=false \
-                          ${IMAGE_NAME}:${IMAGE_TAG}
-                    """
-
-                    // 5. Attendre que Spring Boot soit vraiment UP (max 120s)
-                    sh """
-                        echo "⏳ Attente que le service soit disponible sur le port ${APP_PORT}..."
-                        for i in \$(seq 1 24); do
-                            if curl -sf http://localhost:${APP_PORT}/actuator/health > /dev/null 2>&1; then
-                                echo "✅ Service UP après \$((i * 5)) secondes"
-                                break
-                            fi
-                            echo "  ... tentative \$i/24"
-                            sleep 5
-                        done
-                        curl -sf http://localhost:${APP_PORT}/actuator/health \
-                          || curl -sf http://localhost:${APP_PORT} \
-                          || (echo "❌ Service non disponible" && docker logs ${ZAP_CONTAINER} --tail=50 && exit 1)
-                    """
-
-                    sh 'mkdir -p zap-reports && chmod 777 zap-reports'
-
-                    // 6. Lancer le scan ZAP
-                    sh """
-                        docker run --rm --network host \
-                          --user root \
-                          -v \$(pwd)/zap-reports:/zap/wrk/:rw \
-                          zaproxy/zap-stable \
-                          zap-baseline.py \
-                          -t http://localhost:${APP_PORT} \
-                          -r zap-report.html \
-                          -x zap-report.xml \
-                          -I
-                    """
+                    sh 'mvn dependency-check:check -B || true'
                 }
             }
             post {
                 always {
-                    sh """
-                        docker stop ${ZAP_CONTAINER} ${MYSQL_CONTAINER} 2>/dev/null || true
-                        docker rm   ${ZAP_CONTAINER} ${MYSQL_CONTAINER} 2>/dev/null || true
-                        docker network rm ${ZAP_NETWORK} 2>/dev/null || true
-                    """
+                    dependencyCheckPublisher(
+                        pattern: 'publication-service/target/dependency-check-report.xml',
+                        failedTotalCritical: 0,
+                        failedTotalHigh: 5,
+                        unstableTotalHigh: 3
+                    )
                     publishHTML([
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'zap-reports',
-                        reportFiles: 'zap-report.html',
-                        reportName: "OWASP ZAP Report - ${SERVICE_NAME}"
+                        reportDir: 'publication-service/target',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'OWASP Dependency-Check Report'
                     ])
-                    archiveArtifacts artifacts: 'zap-reports/zap-report.xml', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'publication-service/target/dependency-check-report.*',
+                                     allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('🐳 Docker Build') {
+            steps {
+                dir('publication-service') {
+                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
                 }
             }
         }
@@ -214,11 +146,6 @@ pipeline {
         }
         failure {
             echo "❌ CI échoué."
-            sh """
-                docker stop ${ZAP_CONTAINER} ${MYSQL_CONTAINER} 2>/dev/null || true
-                docker rm   ${ZAP_CONTAINER} ${MYSQL_CONTAINER} 2>/dev/null || true
-                docker network rm ${ZAP_NETWORK} 2>/dev/null || true
-            """
         }
         always {
             cleanWs()
