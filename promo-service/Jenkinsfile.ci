@@ -83,6 +83,44 @@ pipeline {
                     sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
                 }
             }
+        }
+stage('🔒 Trivy Security Scan') {
+            steps {
+                sh '''
+                    echo "=========================================="
+                    echo "Scan de securite Trivy"
+                    echo "=========================================="
+
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --scanners vuln \
+                        --skip-db-update \
+                        --skip-java-db-update \
+                        --no-progress \
+                        --timeout 5m \
+                        --format table \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
+
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --scanners vuln \
+                        --skip-db-update \
+                        --skip-java-db-update \
+                        --no-progress \
+                        --timeout 5m \
+                        --format json \
+                        --output trivy-report.json \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
+
+                    echo "Scan termine"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.json',
+                                     allowEmptyArchive: true
+                }
+            }
         }                 
        stage('📤 Docker Push') {
             steps {
