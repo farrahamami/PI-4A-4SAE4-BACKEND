@@ -9,7 +9,7 @@ version: '3.8'
 #    - graylog      : interface web + réception GELF
 #
 #  Ports exposés :
-#    - 9000  : Interface web Graylog  → http://localhost:9000
+#    - 9001  : Interface web Graylog  → http://localhost:9001
 #    - 12201 : Input GELF UDP         → reçoit les logs des microservices
 #
 #  Identifiants par défaut :
@@ -113,7 +113,7 @@ services:
       - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
 
       # URL externe de l'interface web (adapter si serveur distant)
-      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9001/
 
       # Connexion à OpenSearch
       - GRAYLOG_ELASTICSEARCH_HOSTS=http://opensearch:9200
@@ -129,7 +129,7 @@ services:
 
     ports:
       # Interface web Graylog
-      - "9000:9000"
+      - "9001:9000"
       # Input GELF UDP — reçoit les logs des 3 microservices Spring Boot
       # publication-service  → UDP GELF → port 12201
       # commentaire-service  → UDP GELF → port 12201
