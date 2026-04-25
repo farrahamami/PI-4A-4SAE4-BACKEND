@@ -92,18 +92,36 @@ pipeline {
                 script {
                     sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
 
+                    // Démarrer le service avec --network host pour que ZAP puisse l'atteindre via localhost
                     sh """
                         docker run -d --name ${ZAP_CONTAINER} \
-                          -p ${APP_PORT}:${APP_PORT} \
+                          --network host \
+                          -e SERVER_PORT=${APP_PORT} \
                           -e GRAYLOG_HOST=localhost \
                           ${IMAGE_NAME}:${IMAGE_TAG}
-                        echo "⏳ Attente du démarrage du service..."
-                        sleep 20
+                    """
+
+                    // Attendre que le service soit vraiment UP (max 90s)
+                    sh """
+                        echo "⏳ Attente que le service soit disponible sur le port ${APP_PORT}..."
+                        for i in \$(seq 1 18); do
+                            if curl -sf http://localhost:${APP_PORT}/actuator/health > /dev/null 2>&1; then
+                                echo "✅ Service UP après \$((i * 5)) secondes"
+                                break
+                            fi
+                            echo "  ... tentative \$i/18 (5s)"
+                            sleep 5
+                        done
+                        # Vérification finale
+                        curl -sf http://localhost:${APP_PORT}/actuator/health || \
+                        curl -sf http://localhost:${APP_PORT} || \
+                        echo "⚠️ Service peut-être pas encore prêt, ZAP va tenter quand même"
                     """
 
                     sh 'mkdir -p zap-reports && chmod 777 zap-reports'
 
-                    // --user root : force ZAP à tourner en root pour éviter le PermissionError sur /zap/wrk/zap.yaml
+                    // --user root : évite le PermissionError sur /zap/wrk/zap.yaml
+                    // --network host : ZAP accède à localhost:8082 directement
                     sh """
                         docker run --rm --network host \
                           --user root \
