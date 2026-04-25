@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
+    }
+
+    environment {
+        REGISTRY    = "172.22.191.1:5000"
+        IMAGE_NAME  = "ads-service"
+        K8S_NS      = "prolance"
+        SERVICE_DIR = "ads-service"
+        KUBECONFIG  = "/home/fawzi/.kube/config"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Apply Namespace & Base Resources') {
+            steps {
+                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/namespace.yaml"
+                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/configmap.yaml"
+                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/secret.yaml"
+                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/postgres.yaml"
+            }
+        }
+
+        stage('Deploy ads-service') {
+            steps {
+                sh """
+                  sed 's|IMAGE_TAG|${params.IMAGE_TAG}|g' ${SERVICE_DIR}/k8s/deployment.yaml \
+                    | kubectl --kubeconfig=${KUBECONFIG} apply -f -
+                """
+                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/service.yaml"
+            }
+        }
+
+        stage('Wait for Rollout') {
+            steps {
+                sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} rollout status deployment/ads-service --timeout=180s"
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} get pods -l app=ads-service"
+                sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} get svc ads-service"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "CD done — ads-service:${params.IMAGE_TAG} running in namespace ${K8S_NS}."
+        }
+        failure {
+            sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} describe pods -l app=ads-service || true"
+        }
+    }
+}
