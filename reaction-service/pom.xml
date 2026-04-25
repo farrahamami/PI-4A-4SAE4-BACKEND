@@ -110,6 +110,20 @@
                     </execution>
                 </executions>
             </plugin>
+
+
+            <!-- Plugin OWASP Dependency-Check pour l'analyse des vulnérabilités -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>9.0.9</version>
+                <configuration>
+                    <format>ALL</format>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                </configuration>
+            </plugin>
+
+
         </plugins>
     </build>
 </project>

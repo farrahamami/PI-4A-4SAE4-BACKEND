@@ -13,7 +13,6 @@ pipeline {
         IMAGE_TAG         = "${env.BUILD_NUMBER}"
         SONAR_PROJECT     = 'reaction-service'
         APP_PORT          = '8084'
-        ZAP_CONTAINER     = 'zap-target-reaction'
     }
 
     options {
@@ -79,59 +78,36 @@ pipeline {
             }
         }
 
-        stage('🐳 Docker Build') {
+        // ✅ REMPLACE ZAP — pas besoin de Docker, MySQL ou service démarré
+        stage('🔒 OWASP Dependency-Check') {
             steps {
                 dir('reaction-service') {
-                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
-                }
-            }
-        }
-
-        stage('🔒 OWASP ZAP Security Scan') {
-            steps {
-                script {
-                    // Nettoyer un éventuel container résiduel
-                    sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
-
-                    // Démarrer le service en local pour le scan
-                    // GRAYLOG_HOST=localhost car Graylog tourne sur la même machine Jenkins
-                    sh """
-                        docker run -d --name ${ZAP_CONTAINER} \
-                          -p ${APP_PORT}:${APP_PORT} \
-                          -e GRAYLOG_HOST=localhost \
-                          ${IMAGE_NAME}:${IMAGE_TAG}
-                        echo "⏳ Attente du démarrage du service..."
-                        sleep 20
-                    """
-
-                    // Créer le dossier de rapport avec les bons droits
-                    sh 'mkdir -p zap-reports && chmod 777 zap-reports'
-
-                    // Lancer le scan ZAP en mode Baseline
-                    sh """
-                        docker run --rm --network host \
-                          -v \$(pwd)/zap-reports:/zap/wrk/:rw \
-                          zaproxy/zap-stable \
-                          zap-baseline.py \
-                          -t http://localhost:${APP_PORT} \
-                          -r zap-report.html \
-                          -x zap-report.xml \
-                          -I
-                    """
+                    sh 'mvn dependency-check:check -B || true'
                 }
             }
             post {
                 always {
-                    sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
+                    dependencyCheckPublisher(
+                        pattern: 'reaction-service/target/dependency-check-report.xml'
+                    )
                     publishHTML([
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'zap-reports',
-                        reportFiles: 'zap-report.html',
-                        reportName: "OWASP ZAP Report - ${SERVICE_NAME}"
+                        reportDir: 'reaction-service/target',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'OWASP Dependency-Check Report'
                     ])
-                    archiveArtifacts artifacts: 'zap-reports/zap-report.xml', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'reaction-service/target/dependency-check-report.*',
+                                     allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('🐳 Docker Build') {
+            steps {
+                dir('reaction-service') {
+                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
                 }
             }
         }
@@ -167,7 +143,6 @@ pipeline {
         }
         failure {
             echo "❌ CI échoué."
-            sh "docker stop ${ZAP_CONTAINER} 2>/dev/null || true && docker rm ${ZAP_CONTAINER} 2>/dev/null || true"
         }
         always {
             cleanWs()
