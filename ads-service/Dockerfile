@@ -1,14 +1,8 @@
-# ---- Build stage ----
-FROM maven:3.9.6-eclipse-temurin-21 AS builder
-WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline -q
-COPY src ./src
-RUN mvn package -DskipTests -q
-
-# ---- Runtime stage ----
+# Runtime-only image. Jar is built by Jenkins (Maven) in the Build & Unit Tests stage,
+# then docker build copies it in. This avoids running Maven inside Docker (faster + no
+# Docker Hub round-trips during CI).
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
+COPY target/*.jar app.jar
 EXPOSE 8090
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java","-jar","/app/app.jar"]
