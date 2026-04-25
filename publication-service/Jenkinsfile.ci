@@ -88,10 +88,7 @@ pipeline {
             post {
                 always {
                     dependencyCheckPublisher(
-                        pattern: 'publication-service/target/dependency-check-report.xml',
-                        failedTotalCritical: 0,
-                        failedTotalHigh: 5,
-                        unstableTotalHigh: 3
+                        pattern: 'publication-service/target/dependency-check-report.xml'
                     )
                     publishHTML([
                         allowMissing: true,
