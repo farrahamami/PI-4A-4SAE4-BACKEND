@@ -41,16 +41,51 @@ pipeline {
                     sh 'mvn test -B'
                 }
             }
-            post {
-                always {
-                    junit testResults: 'subscription-service/target/surefire-reports/*.xml',
-                          allowEmptyResults: true
-                    jacoco execPattern: 'subscription-service/target/jacoco.exec',
-                           classPattern: 'subscription-service/target/classes',
-                           sourcePattern: 'subscription-service/src/main/java',
-                           exclusionPattern: '**/dto/**,**/entities/**,**/enums/**,**/config/**,**/*Application.class'
-                }
-            }
+          post {
+        success {
+            echo "✅ CI OK : ${IMAGE_NAME}:${IMAGE_TAG}"
+            emailext(
+                subject: "✅ SUCCESS: ${SERVICE_NAME} #${env.BUILD_NUMBER}",
+                body: """<html>
+                <body style='font-family: Arial;'>
+                    <h2 style='color: green;'>✅ Build SUCCESS</h2>
+                    <table cellpadding='8'>
+                        <tr><td><b>Project:</b></td><td>${SERVICE_NAME}</td></tr>
+                        <tr><td><b>Build:</b></td><td>#${env.BUILD_NUMBER}</td></tr>
+                        <tr><td><b>Image:</b></td><td>${IMAGE_NAME}:${IMAGE_TAG}</td></tr>
+                        <tr><td><b>Logs:</b></td><td><a href='${env.BUILD_URL}'>Voir le build</a></td></tr>
+                        <tr><td><b>DockerHub:</b></td><td><a href='https://hub.docker.com/r/${IMAGE_NAME}'>Voir l image</a></td></tr>
+                    </table>
+                    <hr>
+                    <small>Pipeline CI/CD - Prolance</small>
+                </body></html>""",
+                to: '\$DEFAULT_RECIPIENTS',
+                mimeType: 'text/html'
+            )
+        }
+        failure {
+            echo "❌ CI échoué."
+            emailext(
+                subject: "❌ FAILURE: ${SERVICE_NAME} #${env.BUILD_NUMBER}",
+                body: """<html>
+                <body style='font-family: Arial;'>
+                    <h2 style='color: red;'>❌ Build FAILED</h2>
+                    <table cellpadding='8'>
+                        <tr><td><b>Project:</b></td><td>${SERVICE_NAME}</td></tr>
+                        <tr><td><b>Build:</b></td><td>#${env.BUILD_NUMBER}</td></tr>
+                        <tr><td><b>Logs:</b></td><td><a href='${env.BUILD_URL}console'>Voir les logs d erreur</a></td></tr>
+                    </table>
+                    <hr>
+                    <p style='color: red;'>⚠️ Action requise !</p>
+                </body></html>""",
+                to: '\$DEFAULT_RECIPIENTS',
+                mimeType: 'text/html'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
         }
 
         stage('📦 Package JAR') {
