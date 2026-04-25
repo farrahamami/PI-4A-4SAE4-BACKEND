@@ -105,7 +105,7 @@ pipeline {
                     """
 
                     // Créer le dossier de rapport avec les bons droits
-                    sh 'mkdir -p zap-reports && chmod 777 zap-reports'
+                    sh 'mkdir -p zap-reports && chmod 777 zap-reports && chown -R 1000:1000 zap-reports'
 
                     // Lancer le scan ZAP en mode Baseline
                     sh """
