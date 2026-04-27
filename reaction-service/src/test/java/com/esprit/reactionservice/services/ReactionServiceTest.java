@@ -24,15 +24,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Tests unitaires de ReactionService.
- * Toutes les dépendances (repository, userClient, publicationClient) sont mockées avec Mockito.
- * Spring n'est PAS démarré → exécution ultra-rapide.
- */
+
 @ExtendWith(MockitoExtension.class)
 class ReactionServiceTest {
 
-    // ── Mocks injectés automatiquement ──────────────────────────────
     @Mock
     private ReactionRepository reactionRepository;
 
@@ -45,7 +40,6 @@ class ReactionServiceTest {
     @InjectMocks
     private ReactionService reactionService;
 
-    // ── Helper : fabrique une Reaction de test ───────────────────────
     private Reaction makeReaction(Integer id, Integer userId, Integer publicationId, TypeReaction type) {
         Reaction r = new Reaction();
         r.setId(id);
@@ -55,7 +49,6 @@ class ReactionServiceTest {
         return r;
     }
 
-    // ── Helper : UserDTO fictif ──────────────────────────────────────
     private UserDTO makeUser(Integer id) {
         UserDTO u = new UserDTO();
         u.setId(id);
@@ -64,9 +57,7 @@ class ReactionServiceTest {
         return u;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  1. toggleReaction — création nouvelle réaction
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("toggleReaction() — nouvelle réaction")
     class ToggleReaction_NewTests {
@@ -121,9 +112,7 @@ class ReactionServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  2. toggleReaction — suppression (même type)
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("toggleReaction() — suppression (même type)")
     class ToggleReaction_DeleteTests {
@@ -158,9 +147,7 @@ class ReactionServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  3. toggleReaction — changement de type
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("toggleReaction() — changement de type")
     class ToggleReaction_ChangeTypeTests {
@@ -198,9 +185,7 @@ class ReactionServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  4. toggleReaction — validation des clients externes
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("toggleReaction() — validation clients")
     class ToggleReaction_ValidationTests {
@@ -231,9 +216,7 @@ class ReactionServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  5. getSummary
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getSummary()")
     class GetSummaryTests {

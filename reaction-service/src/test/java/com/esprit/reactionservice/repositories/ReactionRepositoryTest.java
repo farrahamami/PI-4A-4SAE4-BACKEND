@@ -14,12 +14,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Tests d'intégration de la couche Repository.
- * @DataJpaTest démarre uniquement la couche JPA (pas de serveur web, pas d'Eureka).
- * H2 en mémoire remplace MySQL.
- * La contrainte d'unicité (user_id, publication_id) est vérifiée réellement.
- */
+
 @DataJpaTest
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL;NON_KEYWORDS=VALUE",
@@ -38,7 +33,6 @@ class ReactionRepositoryTest {
     @Autowired
     private ReactionRepository repository;
 
-    // ── Helper : sauvegarde une réaction ────────────────────────────
     private Reaction save(Integer userId, Integer publicationId, TypeReaction type) {
         Reaction r = new Reaction();
         r.setUserId(userId);
@@ -47,9 +41,7 @@ class ReactionRepositoryTest {
         return repository.saveAndFlush(r);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  findByPublicationId()
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("findByPublicationId()")
     class FindByPublicationIdTests {
@@ -88,9 +80,7 @@ class ReactionRepositoryTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  findByPublicationIdAndUserId()
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("findByPublicationIdAndUserId()")
     class FindByPublicationIdAndUserIdTests {
@@ -137,9 +127,7 @@ class ReactionRepositoryTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  countByPublicationIdAndType()
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("countByPublicationIdAndType()")
     class CountByPublicationIdAndTypeTests {
@@ -178,9 +166,7 @@ class ReactionRepositoryTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  CRUD de base
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("CRUD de base")
     class CrudTests {

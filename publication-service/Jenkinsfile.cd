@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         SERVICE_NAME     = 'publication-service'
-        DOCKER_NAMESPACE = 'guesmiameni'
+        DOCKER_NAMESPACE = 'farahchbeb'
         IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
         APP_PORT         = '8082'
         CONTAINER_NAME   = 'publication-service-live'
@@ -35,7 +35,7 @@ pipeline {
         stage('🔐 Login DockerHub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'docker-hub-credentials',
+                    credentialsId: 'dockerhub-creds',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {

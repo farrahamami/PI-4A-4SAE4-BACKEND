@@ -12,11 +12,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Tests d'intégration de la couche Repository.
- * @DataJpaTest démarre uniquement la couche JPA (pas de serveur web, pas d'Eureka).
- * H2 en mémoire remplace MySQL.
- */
+
 @DataJpaTest
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL;NON_KEYWORDS=VALUE",
@@ -35,7 +31,6 @@ class CommentaireRepositoryTest {
     @Autowired
     private CommentaireRepository repository;
 
-    // ── Helper : sauvegarde un commentaire racine ────────────────────
     private Commentaire saveRoot(Integer userId, Integer publicationId) {
         Commentaire c = new Commentaire();
         c.setUserId(userId);
@@ -44,7 +39,6 @@ class CommentaireRepositoryTest {
         return repository.saveAndFlush(c);
     }
 
-    // ── Helper : sauvegarde une réponse (avec parent) ────────────────
     private Commentaire saveReply(Integer userId, Integer publicationId, Commentaire parent) {
         Commentaire c = new Commentaire();
         c.setUserId(userId);
@@ -54,9 +48,7 @@ class CommentaireRepositoryTest {
         return repository.saveAndFlush(c);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  findByPublicationId()
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("findByPublicationId()")
     class FindByPublicationIdTests {
@@ -81,9 +73,7 @@ class CommentaireRepositoryTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  findAllByOrderByCreateAtDesc()
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("findAllByOrderByCreateAtDesc()")
     class FindAllOrderedTests {
@@ -107,9 +97,7 @@ class CommentaireRepositoryTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  findRootByPublicationIdOrderByPinned()
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("findRootByPublicationIdOrderByPinned()")
     class FindRootByPublicationIdOrderByPinnedTests {
@@ -163,9 +151,6 @@ class CommentaireRepositoryTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  CRUD de base
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("CRUD de base")
     class CrudTests {

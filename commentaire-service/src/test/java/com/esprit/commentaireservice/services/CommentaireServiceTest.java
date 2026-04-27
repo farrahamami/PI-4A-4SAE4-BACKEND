@@ -23,15 +23,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Tests unitaires de CommentaireService.
- * Toutes les dépendances (repository, userClient, publicationClient) sont mockées avec Mockito.
- * Spring n'est PAS démarré → exécution ultra-rapide.
- */
+
 @ExtendWith(MockitoExtension.class)
 class CommentaireServiceTest {
 
-    // ── Mocks injectés automatiquement ──────────────────────────────
     @Mock
     private CommentaireRepository commentaireRepository;
 
@@ -44,7 +39,6 @@ class CommentaireServiceTest {
     @InjectMocks
     private CommentaireService commentaireService;
 
-    // ── Helper : fabrique un Commentaire de test ─────────────────────
     private Commentaire makeCommentaire(Integer id, Integer userId, Integer publicationId) {
         Commentaire c = new Commentaire();
         c.setId(id);
@@ -55,7 +49,6 @@ class CommentaireServiceTest {
         return c;
     }
 
-    // ── Helper : UserDTO fictif ──────────────────────────────────────
     private UserDTO makeUser(Integer id) {
         UserDTO u = new UserDTO();
         u.setId(id);
@@ -64,7 +57,6 @@ class CommentaireServiceTest {
         return u;
     }
 
-    // ── Helper : PublicationDTO fictif ───────────────────────────────
     private PublicationDTO makePublication(Integer id, Integer userId) {
         PublicationDTO p = new PublicationDTO();
         p.setId(id);
@@ -72,9 +64,7 @@ class CommentaireServiceTest {
         return p;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  1. getAllCommentaires
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getAllCommentaires()")
     class GetAllCommentairesTests {
@@ -118,9 +108,7 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  2. getByPublicationId
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getByPublicationId()")
     class GetByPublicationIdTests {
@@ -150,9 +138,7 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  3. getById
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("getById()")
     class GetByIdTests {
@@ -180,9 +166,7 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  4. create
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("create()")
     class CreateCommentaireTests {
@@ -235,9 +219,7 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  5. reply
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("reply()")
     class ReplyTests {
@@ -290,9 +272,7 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  6. update
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("update()")
     class UpdateCommentaireTests {
@@ -347,9 +327,7 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  7. delete
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("delete()")
     class DeleteCommentaireTests {
@@ -389,9 +367,6 @@ class CommentaireServiceTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  8. togglePin
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("togglePin()")
     class TogglePinTests {

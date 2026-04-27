@@ -20,13 +20,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Tests d'intégration de la couche HTTP (contrôleur).
- * @WebMvcTest charge uniquement le contexte web (contrôleurs, filtres, MockMvc).
- * Le service est mocké avec @MockBean → pas de base de données.
- */
+
 @WebMvcTest(CommentaireController.class)
-@WithMockUser  // Désactive Spring Security pour tous les tests de cette classe
+@WithMockUser
 class CommentaireControllerTest {
 
     @Autowired
@@ -35,7 +31,6 @@ class CommentaireControllerTest {
     @MockBean
     private CommentaireService commentaireService;
 
-    // ── Helper : fabrique un Commentaire de test ─────────────────────
     private Commentaire makeCommentaire(Integer id, Integer userId, Integer publicationId) {
         Commentaire c = new Commentaire();
         c.setId(id);
@@ -47,9 +42,6 @@ class CommentaireControllerTest {
         return c;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/commentaires
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("GET /api/commentaires")
     class GetAllTests {
@@ -79,9 +71,6 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/commentaires/publication/{publicationId}
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("GET /api/commentaires/publication/{publicationId}")
     class GetByPublicationTests {
@@ -109,9 +98,6 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/commentaires/{id}
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("GET /api/commentaires/{id}")
     class GetByIdTests {
@@ -139,9 +125,7 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  POST /api/commentaires
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("POST /api/commentaires")
     class CreateCommentaireTests {
@@ -190,9 +174,7 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  POST /api/commentaires/{parentId}/reply
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("POST /api/commentaires/{parentId}/reply")
     class ReplyTests {
@@ -227,9 +209,7 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  PUT /api/commentaires/{id}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("PUT /api/commentaires/{id}")
     class UpdateCommentaireTests {
@@ -263,9 +243,7 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  DELETE /api/commentaires/{id}
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("DELETE /api/commentaires/{id}")
     class DeleteCommentaireTests {
@@ -307,9 +285,6 @@ class CommentaireControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  PUT /api/commentaires/{id}/pin
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("PUT /api/commentaires/{id}/pin")
     class TogglePinTests {

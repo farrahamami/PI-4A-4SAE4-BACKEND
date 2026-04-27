@@ -23,11 +23,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Tests d'intégration de la couche HTTP (contrôleur).
- * @WebMvcTest charge uniquement le contexte web (contrôleurs, filtres, MockMvc).
- * Le service est mocké avec @MockBean → pas de base de données.
- */
+
 @WebMvcTest(ReactionController.class)
 @WithMockUser  // Désactive Spring Security pour tous les tests de cette classe
 class ReactionControllerTest {
@@ -38,7 +34,6 @@ class ReactionControllerTest {
     @MockBean
     private ReactionService reactionService;
 
-    // ── Helper : fabrique une Reaction de test ───────────────────────
     private Reaction makeReaction(Integer id, Integer userId, Integer publicationId, TypeReaction type) {
         Reaction r = new Reaction();
         r.setId(id);
@@ -48,7 +43,6 @@ class ReactionControllerTest {
         return r;
     }
 
-    // ── Helper : ReactionSummaryDTO de test ──────────────────────────
     private ReactionSummaryDTO makeSummary(long likes, long dislikes, long hearts,
                                            TypeReaction userReaction) {
         ReactionSummaryDTO dto = new ReactionSummaryDTO();
@@ -60,9 +54,6 @@ class ReactionControllerTest {
         return dto;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  POST /api/reactions/publication/{publicationId}  (toggle)
-    // ════════════════════════════════════════════════════════════════
     @Nested
     @DisplayName("POST /api/reactions/publication/{publicationId}")
     class ToggleReactionTests {
@@ -140,9 +131,7 @@ class ReactionControllerTest {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GET /api/reactions/publication/{publicationId}/summary
-    // ════════════════════════════════════════════════════════════════
+
     @Nested
     @DisplayName("GET /api/reactions/publication/{publicationId}/summary")
     class GetSummaryTests {

@@ -78,7 +78,6 @@ pipeline {
             }
         }
 
-        // ✅ REMPLACE ZAP — pas besoin de Docker, MySQL ou service démarré
         stage('🔒 OWASP Dependency-Check') {
             steps {
                 dir('commentaire-service') {
