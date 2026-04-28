@@ -53,17 +53,13 @@ public class Publication {
     @Column(nullable = false)
     private TypePublication type;
 
-    /**
-     * Liste des userId qui ont signalé cette publication.
-     */
+
     @ElementCollection
     @CollectionTable(name = "publication_signalements", joinColumns = @JoinColumn(name = "publication_id"))
     @Column(name = "user_id")
     private List<Integer> signalements = new ArrayList<>();
 
-    /**
-     * Raisons des signalements (alignées par index avec la liste signalements).
-     */
+
     @ElementCollection
     @CollectionTable(name = "publication_signalement_raisons", joinColumns = @JoinColumn(name = "publication_id"))
     @Column(name = "raison", columnDefinition = "TEXT")

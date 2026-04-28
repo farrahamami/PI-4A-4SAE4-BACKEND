@@ -30,10 +30,6 @@ public interface PublicationRepository extends JpaRepository<Publication, Intege
     @Query("SELECT CASE WHEN :userId MEMBER OF p.signalements THEN true ELSE false END FROM Publication p WHERE p.id = :pubId")
     boolean hasUserAlreadySignaled(@Param("pubId") Integer pubId, @Param("userId") Integer userId);
 
-    /**
-     * Nombre de publications ARCHIVED d'un utilisateur.
-     * Sert à déterminer si l'utilisateur est "averti" (1-2) ou "bloqué" (>=3).
-     */
     @Query("SELECT COUNT(p) FROM Publication p WHERE p.userId = :userId AND p.statut = 'ARCHIVED'")
     long countArchivedByUserId(@Param("userId") Integer userId);
 }

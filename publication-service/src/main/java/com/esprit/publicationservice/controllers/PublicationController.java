@@ -19,8 +19,6 @@ public class PublicationController {
 
     private final PublicationService publicationService;
 
-    // ── Lecture ──────────────────────────────────────────────────────
-
     @GetMapping
     public ResponseEntity<List<Publication>> getAll() {
         return ResponseEntity.ok(publicationService.getAllPublications());
@@ -52,12 +50,7 @@ public class PublicationController {
         catch (RuntimeException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); }
     }
 
-    // ── Statut blocage ───────────────────────────────────────────────
 
-    /**
-     * Retourne le statut de blocage d'un user.
-     * archivedCount = nombre de posts archivés (seuil = 3 pour bloquer).
-     */
     @GetMapping("/user/{userId}/block-status")
     public ResponseEntity<Map<String, Object>> getBlockStatus(@PathVariable Integer userId) {
         boolean blocked      = publicationService.isUserBlocked(userId);
@@ -68,7 +61,6 @@ public class PublicationController {
         ));
     }
 
-    // ── Utilisateurs bloqués / avertis ───────────────────────────────
 
     @GetMapping("/admin/blocked-users")
     public ResponseEntity<List<UserBlockDTO>> getBlockedUsers() {
@@ -85,12 +77,6 @@ public class PublicationController {
         }
     }
 
-    // ── Signalement ──────────────────────────────────────────────────
-
-    /**
-     * Signale une publication avec une raison obligatoire.
-     * 3 signalements → archivage automatique.
-     */
     @PostMapping("/{id}/signaler")
     public ResponseEntity<?> signaler(
             @PathVariable Integer id,
@@ -105,7 +91,6 @@ public class PublicationController {
         }
     }
 
-    // ── CRUD ─────────────────────────────────────────────────────────
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
