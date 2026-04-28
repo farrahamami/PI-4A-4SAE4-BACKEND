@@ -1,0 +1,199 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'JDK21'
+        maven 'Maven3'
+    }
+
+    environment {
+        SERVICE_NAME     = 'promo-service'
+        DOCKER_NAMESPACE = 'farahchbeb'
+        IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
+        IMAGE_TAG        = "${env.BUILD_NUMBER}"
+        SONAR_PROJECT    = 'promo-service'
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('📥 Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('🔨 Compile') {
+            steps {
+                dir('promo-service') {
+                    sh 'mvn clean compile -B'
+                }
+            }
+        }
+
+        stage('🧪 Tests + Coverage JaCoCo') {
+            steps {
+                dir('promo-service') {
+                    sh 'mvn test -B'
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'promo-service/target/surefire-reports/*.xml',
+                          allowEmptyResults: true
+                    jacoco execPattern: 'promo-service/target/jacoco.exec',
+                           classPattern: 'promo-service/target/classes',
+                           sourcePattern: 'promo-service/src/main/java',
+                           exclusionPattern: '**/dto/**,**/Entity/**,**/config/**,**/*Application.class'
+                }
+            }
+        }
+
+        stage('📦 Package JAR') {
+            steps {
+                dir('promo-service') {
+                    sh 'mvn package -DskipTests -B'
+                }
+                archiveArtifacts artifacts: 'promo-service/target/*.jar', fingerprint: true
+            }
+        }
+
+        stage('🔍 SonarQube Analysis') {
+            steps {
+                dir('promo-service') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            mvn sonar:sonar \
+                              -Dsonar.projectKey=${SONAR_PROJECT} \
+                              -Dsonar.projectName=${SONAR_PROJECT} \
+                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('🐳 Docker Build') {
+            steps {
+                dir('promo-service') {
+                    sh '''
+                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
+                    '''
+                }
+            }
+        }
+
+        stage('🔒 Trivy Security Scan') {
+            steps {
+                sh '''
+                    echo "=========================================="
+                    echo "Scan de securite Trivy"
+                    echo "=========================================="
+
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --scanners vuln \
+                        --skip-db-update \
+                        --skip-java-db-update \
+                        --no-progress \
+                        --timeout 5m \
+                        --format table \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
+
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --scanners vuln \
+                        --skip-db-update \
+                        --skip-java-db-update \
+                        --no-progress \
+                        --timeout 5m \
+                        --format json \
+                        --output trivy-report.json \
+                        ${IMAGE_NAME}:${IMAGE_TAG} || true
+
+                    echo "Scan termine"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.json',
+                                     allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('📤 Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:latest
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('💾 Save build info for CD') {
+            steps {
+                writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
+                archiveArtifacts artifacts: 'last-build.txt'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI OK : ${IMAGE_NAME}:${IMAGE_TAG}"
+            emailext(
+                subject: "✅ SUCCESS: ${SERVICE_NAME} #${env.BUILD_NUMBER}",
+                body: """<html>
+                <body style='font-family: Arial;'>
+                    <h2 style='color: green;'>✅ Build SUCCESS</h2>
+                    <table cellpadding='8'>
+                        <tr><td><b>Project:</b></td><td>${SERVICE_NAME}</td></tr>
+                        <tr><td><b>Build:</b></td><td>#${env.BUILD_NUMBER}</td></tr>
+                        <tr><td><b>Image:</b></td><td>${IMAGE_NAME}:${IMAGE_TAG}</td></tr>
+                        <tr><td><b>Logs:</b></td><td><a href='${env.BUILD_URL}'>Voir le build</a></td></tr>
+                        <tr><td><b>DockerHub:</b></td><td><a href='https://hub.docker.com/r/${IMAGE_NAME}'>Voir l image</a></td></tr>
+                    </table>
+                    <hr>
+                    <small>Pipeline CI/CD - Prolance</small>
+                </body></html>""",
+                to: '\$DEFAULT_RECIPIENTS',
+                mimeType: 'text/html'
+            )
+        }
+        failure {
+            echo "❌ CI echoue."
+            emailext(
+                subject: "❌ FAILURE: ${SERVICE_NAME} #${env.BUILD_NUMBER}",
+                body: """<html>
+                <body style='font-family: Arial;'>
+                    <h2 style='color: red;'>❌ Build FAILED</h2>
+                    <table cellpadding='8'>
+                        <tr><td><b>Project:</b></td><td>${SERVICE_NAME}</td></tr>
+                        <tr><td><b>Build:</b></td><td>#${env.BUILD_NUMBER}</td></tr>
+                        <tr><td><b>Logs:</b></td><td><a href='${env.BUILD_URL}console'>Voir les logs</a></td></tr>
+                    </table>
+                    <hr>
+                    <p style='color: red;'>⚠️ Action requise !</p>
+                </body></html>""",
+                to: '\$DEFAULT_RECIPIENTS',
+                mimeType: 'text/html'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
