@@ -21,28 +21,16 @@ pipeline {
             }
         }
 
-        stage('Apply Namespace & Base Resources') {
-            steps {
-                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/namespace.yaml"
-                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/configmap.yaml"
-                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/secret.yaml"
-                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/postgres.yaml"
-            }
-        }
-
-        stage('Deploy ads-service') {
+        stage('Helm Deploy') {
             steps {
                 sh """
-                  sed 's|IMAGE_TAG|${params.IMAGE_TAG}|g' ${SERVICE_DIR}/k8s/deployment.yaml \
-                    | kubectl --kubeconfig=${KUBECONFIG} apply -f -
+                  helm upgrade --install ads-service ${SERVICE_DIR}/helm/ads-service \
+                    --namespace ${K8S_NS} \
+                    --set image.tag=${params.IMAGE_TAG} \
+                    --set image.repository=${REGISTRY}/${IMAGE_NAME} \
+                    --kubeconfig ${KUBECONFIG} \
+                    --wait --timeout 180s
                 """
-                sh "kubectl --kubeconfig=${KUBECONFIG} apply -f ${SERVICE_DIR}/k8s/service.yaml"
-            }
-        }
-
-        stage('Wait for Rollout') {
-            steps {
-                sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} rollout status deployment/ads-service --timeout=180s"
             }
         }
 
@@ -50,6 +38,7 @@ pipeline {
             steps {
                 sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} get pods -l app=ads-service"
                 sh "kubectl --kubeconfig=${KUBECONFIG} -n ${K8S_NS} get svc ads-service"
+                sh "helm list -n ${K8S_NS} --kubeconfig ${KUBECONFIG}"
             }
         }
     }
