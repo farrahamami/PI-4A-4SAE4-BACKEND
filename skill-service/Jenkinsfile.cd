@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME     = 'skill-service'
+        DOCKER_NAMESPACE = 'yesmine111'
+        IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
+        APP_PORT         = '8096'
+        K8S_NAMESPACE    = 'default'
+    }
+
+    options {
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('📥 Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('🔖 Récupérer le tag CI') {
+            steps {
+                script {
+                    def ciJob = Jenkins.instance.getItem("skill-service-ci")
+                    def lastBuild = ciJob?.lastSuccessfulBuild
+                    env.IMAGE_TAG = lastBuild ? lastBuild.number.toString() : 'latest'
+                    echo "🔖 Tag récupéré : ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('🚀 Deploy to Kubernetes') {
+            steps {
+                dir('skill-service/k8s') {
+                    sh '''
+                        sed -i "s|IMAGE_PLACEHOLDER|${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
+                        kubectl apply -f deployment.yaml
+                        kubectl apply -f service.yaml
+                    '''
+                }
+            }
+        }
+
+        stage('✅ Vérifier le déploiement') {
+            steps {
+                sh '''
+                    kubectl rollout status deployment/${SERVICE_NAME} -n ${K8S_NAMESPACE} --timeout=120s
+                    kubectl get pods -l app=${SERVICE_NAME} -n ${K8S_NAMESPACE}
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CD OK : ${SERVICE_NAME} déployé sur Kubernetes avec l'image ${IMAGE_NAME}:${IMAGE_TAG}"
+        }
+        failure {
+            echo "❌ CD échoué pour ${SERVICE_NAME}."
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

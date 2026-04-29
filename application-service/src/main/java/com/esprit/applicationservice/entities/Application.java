@@ -2,9 +2,6 @@ package com.esprit.applicationservice.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 
 @Entity

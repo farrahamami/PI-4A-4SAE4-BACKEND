@@ -77,7 +77,7 @@ public class ApplicationService {
     }
     public Application acceptApplication(Long applicationId) {
         Application app = applicationRepo.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
+                .orElseThrow(() -> new IllegalArgumentException("Application not found: " + applicationId));
         app.setAccepted(true);
         log.info("✅ Application accepted: id={}", applicationId);
         return applicationRepo.save(app);
@@ -103,7 +103,7 @@ public class ApplicationService {
                 .bodyToMono(ProjectDto.class)
                 .block();
 
-        if (project == null) throw new RuntimeException("Project not found: " + projectId);
+        if (project == null) throw new IllegalArgumentException("Project not found: " + projectId);
 
         // Call skill-service
         List<SkillDto> skills = webClientBuilder.build()

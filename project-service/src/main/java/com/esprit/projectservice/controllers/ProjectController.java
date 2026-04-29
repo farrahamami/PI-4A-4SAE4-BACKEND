@@ -59,7 +59,7 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProject(@PathVariable Long id) {
+    public ResponseEntity<Object> deleteProject(@PathVariable Long id) {
         try {
             projectService.deleteProject(id);
             return ResponseEntity.noContent().build();  // 204 — succès

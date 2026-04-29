@@ -1,0 +1,126 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'JDK21'
+        maven 'Maven3'
+    }
+
+    environment {
+        SERVICE_NAME     = 'skill-service'
+        DOCKER_NAMESPACE = 'yesmine111'
+        IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
+        IMAGE_TAG        = "${env.BUILD_NUMBER}"
+        SONAR_PROJECT    = 'skill-service'
+        APP_PORT         = '8096'
+    }
+
+    options {
+        timeout(time: 40, unit: 'MINUTES')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('📥 Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('🔨 Compile') {
+            steps {
+                dir('skill-service') {
+                    sh 'mvn clean compile -B'
+                }
+            }
+        }
+
+        stage('🧪 Tests + Coverage JaCoCo') {
+            steps {
+                dir('skill-service') {
+                    sh 'mvn test -B'
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'skill-service/target/surefire-reports/*.xml',
+                          allowEmptyResults: true
+                    jacoco execPattern: 'skill-service/target/jacoco.exec',
+                           classPattern: 'skill-service/target/classes',
+                           sourcePattern: 'skill-service/src/main/java',
+                           exclusionPattern: '**/dto/**,**/entities/**,**/config/**,**/*Application.class'
+                }
+            }
+        }
+
+        stage('📦 Package JAR') {
+            steps {
+                dir('skill-service') {
+                    sh 'mvn package -DskipTests -B'
+                }
+                archiveArtifacts artifacts: 'skill-service/target/*.jar', fingerprint: true
+            }
+        }
+
+        stage('🔍 SonarQube Analysis') {
+            steps {
+                dir('skill-service') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            mvn sonar:sonar \
+                              -Dsonar.projectKey=${SONAR_PROJECT} \
+                              -Dsonar.projectName=${SONAR_PROJECT} \
+                              -Dsonar.host.url=http://localhost:9000 \
+                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('🐳 Docker Build') {
+            steps {
+                dir('skill-service') {
+                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
+                }
+            }
+        }
+
+        stage('📤 Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:latest
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('💾 Save build info for CD') {
+            steps {
+                writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
+                archiveArtifacts artifacts: 'last-build.txt'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI OK : image ${IMAGE_NAME}:${IMAGE_TAG} poussée sur DockerHub."
+        }
+        failure {
+            echo "❌ CI échoué."
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

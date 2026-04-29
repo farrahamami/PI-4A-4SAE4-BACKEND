@@ -9,7 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.lowagie.text.DocumentException;
+import java.io.IOException;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
@@ -107,9 +108,14 @@ public class FreelancerSkillService {
                 cell.setPadding(12);
                 cell.addElement(new Paragraph(skill.getSkillName().toUpperCase(), skillName));
                 String levelText = skill.getLevel() != null ? skill.getLevel() : "N/A";
-                Color badgeColor = "EXPERT".equals(levelText) ? new Color(34, 197, 94)
-                        : "INTERMEDIATE".equals(levelText) ? new Color(59, 130, 246)
-                        : new Color(156, 163, 175);
+                Color badgeColor;
+                if ("EXPERT".equals(levelText)) {
+                    badgeColor = new Color(34, 197, 94);
+                } else if ("INTERMEDIATE".equals(levelText)) {
+                    badgeColor = new Color(59, 130, 246);
+                } else {
+                    badgeColor = new Color(156, 163, 175);
+                }
                 Paragraph level = new Paragraph(levelText, new Font(Font.HELVETICA, 9, Font.BOLD, badgeColor));
                 level.setSpacingBefore(3);
                 cell.addElement(level);
@@ -175,8 +181,9 @@ public class FreelancerSkillService {
 
             doc.close();
             return out.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating PDF", e);
-        }
+        } catch (DocumentException e) {
+            throw new IllegalStateException("Error generating PDF", e);
+
+    }
     }
 }
