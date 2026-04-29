@@ -2,6 +2,8 @@ pipeline {
     agent any
 
     environment {
+        JAVA_HOME        = '/usr/lib/jvm/java-21-openjdk-amd64'
+        PATH             = "/usr/lib/jvm/java-21-openjdk-amd64/bin:${env.PATH}"
         SERVICE_NAME     = 'skill-service'
         DOCKER_NAMESPACE = 'yesmine111'
         IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
@@ -16,11 +18,18 @@ pipeline {
     }
 
     stages {
-        stage('📥 Checkout') {
-            steps {
-                checkout scm
-            }
+       stage('📥 Checkout') {
+        steps {
+            checkout([$class: 'GitSCM',
+                branches: [[name: '*/devops/on-integrated6sur6/ads_cicd_k8s']],
+                extensions: [[$class: 'CloneOption', depth: 1, shallow: true]],
+                userRemoteConfigs: [[
+                    credentialsId: 'github-credentials',
+                    url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND'
+                ]]
+            ])
         }
+}
 
         stage('🔖 Récupérer le tag CI') {
             steps {
