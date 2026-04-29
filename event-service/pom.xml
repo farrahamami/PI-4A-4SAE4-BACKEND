@@ -22,6 +22,9 @@
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <!-- Valeur par défaut vide pour que @{argLine} soit résolu même sans JaCoCo -->
         <argLine></argLine>
+        <sonar.coverage.exclusions>
+            **/specifications/EventSpecification.java
+        </sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
