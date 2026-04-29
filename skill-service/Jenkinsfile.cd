@@ -31,19 +31,19 @@ pipeline {
         }
 }
 
-       stage('🔖 Récupérer le tag CI') {
-           steps {
-               copyArtifacts(
-                   projectName: 'skill-service-ci',
-                   filter: 'last-build.txt',
-                   selector: lastSuccessful()
-               )
-               script {
-                   env.IMAGE_TAG = readFile('last-build.txt').trim()
-                   echo "🔖 Tag récupéré : ${env.IMAGE_TAG}"
-               }
-           }
-       }
+      stage('🔖 Récupérer le tag CI') {
+          steps {
+              script {
+                  def tagFile = '/var/lib/jenkins/jobs/skill-service-ci/builds/lastSuccessfulBuild/archive/last-build.txt'
+                  try {
+                      env.IMAGE_TAG = sh(script: "cat ${tagFile}", returnStdout: true).trim()
+                  } catch (e) {
+                      env.IMAGE_TAG = 'latest'
+                  }
+                  echo "🔖 Tag récupéré : ${env.IMAGE_TAG}"
+              }
+          }
+      }
 
         stage('🚀 Deploy to Kubernetes') {
             steps {
