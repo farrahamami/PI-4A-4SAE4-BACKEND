@@ -37,20 +37,9 @@ public class EventRequestDTO {
 
     private List<ActivityDTO> activities;
 
-    public EventRequestDTO() {}
 
-    public EventRequestDTO(String title, String description, LocalDateTime startDate, LocalDateTime endDate, String location, Integer capacity, String imageUrl, CategoryEvent category, Long userId, List<ActivityDTO> activities) {
-        this.title = title;
-        this.description = description;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.location = location;
-        this.capacity = capacity;
-        this.imageUrl = imageUrl;
-        this.category = category;
-        this.userId = userId;
-        this.activities = activities;
-    }
+
+
 
     public String getTitle() {
         return title;

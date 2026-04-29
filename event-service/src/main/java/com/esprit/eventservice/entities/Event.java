@@ -46,7 +46,7 @@ public class Event {
     @Column(name = "user_id")
     private Long userId;
 
-    public Event() {}
+
 
     public Long getIdEvent() { return idEvent; }
     public void setIdEvent(Long idEvent) { this.idEvent = idEvent; }
