@@ -5,8 +5,9 @@ pipeline {
         jdk 'JDK21'
         maven 'Maven3'
     }
-
-    environment {
+ environment {
+        JAVA_HOME        = '/usr/lib/jvm/java-21-openjdk-amd64'
+        PATH             = "/usr/lib/jvm/java-21-openjdk-amd64/bin:${env.PATH}"
         SERVICE_NAME     = 'skill-service'
         DOCKER_NAMESPACE = 'yesmine111'
         IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
@@ -14,6 +15,7 @@ pipeline {
         SONAR_PROJECT    = 'skill-service'
         APP_PORT         = '8096'
     }
+   
 
     options {
         timeout(time: 40, unit: 'MINUTES')
