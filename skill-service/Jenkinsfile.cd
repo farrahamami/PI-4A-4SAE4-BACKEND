@@ -34,9 +34,12 @@ pipeline {
         stage('🔖 Récupérer le tag CI') {
             steps {
                 script {
-                    def ciJob = Jenkins.instance.getItem("skill-service-ci")
-                    def lastBuild = ciJob?.lastSuccessfulBuild
-                    env.IMAGE_TAG = lastBuild ? lastBuild.number.toString() : 'latest'
+                    try {
+                        def lastBuild = readFile('last-build.txt').trim()
+                        env.IMAGE_TAG = lastBuild ?: 'latest'
+                    } catch (e) {
+                        env.IMAGE_TAG = 'latest'
+                    }
                     echo "🔖 Tag récupéré : ${env.IMAGE_TAG}"
                 }
             }
