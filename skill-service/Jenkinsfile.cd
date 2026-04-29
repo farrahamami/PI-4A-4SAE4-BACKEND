@@ -8,7 +8,7 @@ pipeline {
         DOCKER_NAMESPACE = 'yesmine111'
         IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
         APP_PORT         = '8096'
-        K8S_NAMESPACE    = 'default'
+        K8S_NAMESPACE    = 'devops'
     }
 
     options {
