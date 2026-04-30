@@ -92,7 +92,7 @@ EOF
 
         stage('Vérifier le déploiement') {
             steps {
-                sh "kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=120s"
+                sh "kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s"
                 sh "kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}"
             }
         }
