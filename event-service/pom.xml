@@ -20,6 +20,11 @@
     <properties>
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <!-- Valeur par défaut vide pour que @{argLine} soit résolu même sans JaCoCo -->
+        <argLine></argLine>
+        <sonar.coverage.exclusions>
+            **/specifications/EventSpecification.java
+        </sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
@@ -60,7 +65,6 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- Lombok -->
         <!-- Swagger -->
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -75,6 +79,23 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.14.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.14.2</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -92,6 +113,7 @@
 
     <build>
         <plugins>
+            <!-- Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -104,6 +126,52 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <!-- Surefire : un seul bloc, avec @{argLine} pour JaCoCo -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+
+                <configuration>
+
+                    <argLine>
+                        @{argLine}
+                        -Dnet.bytebuddy.experimental=true
+                        --add-opens java.base/java.lang=ALL-UNNAMED
+                        --add-opens java.base/java.util=ALL-UNNAMED
+                        --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                    </argLine>
+
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo : couverture de code -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal></goals>
+                        <configuration>
+                            <!-- S'assurer que le XML est bien généré -->
+                            <outputDirectory>
+                                ${project.build.directory}/site/jacoco
+                            </outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>

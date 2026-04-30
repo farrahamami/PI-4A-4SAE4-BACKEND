@@ -24,7 +24,7 @@ public class EventFilterDTO {
     private int page = 0;
     private int size = 10;
 
-    public EventFilterDTO() {}
+
     public String getTitleContains() { return titleContains; }
     public void setTitleContains(String titleContains) { this.titleContains = titleContains; }
     public String getLocationContains() { return locationContains; }

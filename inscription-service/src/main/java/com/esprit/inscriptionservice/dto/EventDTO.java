@@ -10,7 +10,7 @@ public class EventDTO {
     private LocalDateTime endDate;
     private Integer capacity;
 
-    public EventDTO() {}
+
     public Long getIdEvent() { return idEvent; }
     public void setIdEvent(Long idEvent) { this.idEvent = idEvent; }
     public String getTitle() { return title; }

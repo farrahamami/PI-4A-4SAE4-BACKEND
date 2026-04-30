@@ -14,40 +14,43 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 @Service
 public class EventServiceImpl implements IEventService {
 
-    private final EventRepository eventRepository;
-    private final UserClient userClient;
-    private final GeocodingService geocodingService;
-    private final ActivityClient activityClient;   // ← AJOUTÉ
-
-    public EventServiceImpl(EventRepository eventRepository,
-                            UserClient userClient,
-                            GeocodingService geocodingService,
-                            ActivityClient activityClient) {  // ← AJOUTÉ
-        this.eventRepository  = eventRepository;
-        this.userClient       = userClient;
-        this.geocodingService = geocodingService;
-        this.activityClient   = activityClient;    // ← AJOUTÉ
-    }
+    private static final Logger logger = Logger.getLogger(EventServiceImpl.class.getName());
+    private static final String EVENT_NOT_FOUND = "Événement non trouvé";
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "idEvent", "title", "startDate", "endDate",
             "capacity", "currentParticipants", "createdAt", "location"
     );
 
+    private final EventRepository eventRepository;
+    private final UserClient userClient;
+    private final IGeocodingService geocodingService;
+    private final ActivityClient activityClient;
+
+    public EventServiceImpl(EventRepository eventRepository,
+                            UserClient userClient,
+                            IGeocodingService geocodingService,
+                            ActivityClient activityClient) {
+        this.eventRepository  = eventRepository;
+        this.userClient       = userClient;
+        this.geocodingService = geocodingService;
+        this.activityClient   = activityClient;
+    }
+
     @Override
     public EventResponseDTO addEvent(EventRequestDTO dto) {
         if (dto.getEndDate().isBefore(dto.getStartDate())) {
-            throw new RuntimeException("La date de fin doit être après la date de début");
+            throw new IllegalArgumentException("La date de fin doit être après la date de début");
         }
 
         UserDTO user = userClient.getUserById(Math.toIntExact(dto.getUserId()));
         if (user == null) {
-            throw new RuntimeException("Utilisateur non trouvé: " + dto.getUserId());
+            throw new IllegalArgumentException("Utilisateur non trouvé: " + dto.getUserId());
         }
 
         Event event = new Event();
@@ -65,28 +68,13 @@ public class EventServiceImpl implements IEventService {
         event.setCreatedAt(LocalDateTime.now());
         event.setUpdatedAt(LocalDateTime.now());
 
-        if (dto.getLocation() != null && !dto.getLocation().isBlank()) {
-            double[] coords = geocodingService.geocodeAddress(dto.getLocation());
-            if (coords != null) {
-                event.setLatitude(coords[0]);
-                event.setLongitude(coords[1]);
-            }
-        }
+        applyGeocoding(event, dto.getLocation());
 
         Event saved = eventRepository.save(event);
 
-        // ── AJOUTÉ : envoie les activités à activity-service ──────────────
         if (dto.getActivities() != null && !dto.getActivities().isEmpty()) {
-            for (ActivityDTO actDto : dto.getActivities()) {
-                try {
-                    actDto.setEventId(saved.getIdEvent()); // lie l'activité à l'event créé
-                    activityClient.createActivity(actDto);
-                } catch (Exception e) {
-                    System.err.println("[EventService] Erreur création activité '" + actDto.getName() + "': " + e.getMessage());
-                }
-            }
+            createActivities(dto.getActivities(), saved.getIdEvent());
         }
-        // ──────────────────────────────────────────────────────────────────
 
         return mapToResponseDTO(saved, user);
     }
@@ -94,11 +82,11 @@ public class EventServiceImpl implements IEventService {
     @Override
     public EventResponseDTO updateEvent(Long idEvent, EventRequestDTO dto) {
         if (dto.getEndDate().isBefore(dto.getStartDate())) {
-            throw new RuntimeException("La date de fin doit être après la date de début");
+            throw new IllegalArgumentException("La date de fin doit être après la date de début");
         }
 
         Event event = eventRepository.findById(idEvent)
-                .orElseThrow(() -> new RuntimeException("Événement non trouvé"));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND));
 
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
@@ -109,37 +97,14 @@ public class EventServiceImpl implements IEventService {
         event.setCategory(dto.getCategory());
         event.setUpdatedAt(LocalDateTime.now());
 
-        if (dto.getLocation() != null && !dto.getLocation().isBlank()) {
-            boolean locationChanged = !dto.getLocation().equals(event.getLocation());
-            event.setLocation(dto.getLocation());
-            if (locationChanged || event.getLatitude() == null) {
-                double[] coords = geocodingService.geocodeAddress(dto.getLocation());
-                if (coords != null) {
-                    event.setLatitude(coords[0]);
-                    event.setLongitude(coords[1]);
-                }
-            }
-        }
+        updateLocationIfChanged(event, dto.getLocation());
 
         Event updated = eventRepository.save(event);
 
-        // ── Supprime les anciennes activités puis recrée les nouvelles ──────
         if (dto.getActivities() != null) {
-            try {
-                activityClient.deleteActivitiesByEventId(updated.getIdEvent()); // supprime d'abord
-            } catch (Exception e) {
-                System.err.println("[EventService] Erreur suppression activités: " + e.getMessage());
-            }
-            for (ActivityDTO actDto : dto.getActivities()) {
-                try {
-                    actDto.setEventId(updated.getIdEvent());
-                    activityClient.createActivity(actDto);
-                } catch (Exception e) {
-                    System.err.println("[EventService] Erreur création activité '" + actDto.getName() + "': " + e.getMessage());
-                }
-            }
+            deleteActivitiesSafely(updated.getIdEvent());
+            createActivities(dto.getActivities(), updated.getIdEvent());
         }
-        // ──────────────────────────────────────────────────────────────────
 
         UserDTO user = fetchUserSafely(updated.getUserId());
         return mapToResponseDTO(updated, user);
@@ -148,7 +113,7 @@ public class EventServiceImpl implements IEventService {
     @Override
     public EventResponseDTO getEventById(Long idEvent) {
         Event event = eventRepository.findById(idEvent)
-                .orElseThrow(() -> new RuntimeException("Événement non trouvé"));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND));
         UserDTO user = fetchUserSafely(event.getUserId());
         return mapToResponseDTO(event, user);
     }
@@ -157,13 +122,13 @@ public class EventServiceImpl implements IEventService {
     public List<EventResponseDTO> getAllEvents() {
         return eventRepository.findByArchivedFalse().stream()
                 .map(e -> mapToResponseDTO(e, fetchUserSafely(e.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public void archiveEvent(Long idEvent) {
         Event event = eventRepository.findById(idEvent)
-                .orElseThrow(() -> new RuntimeException("Événement non trouvé"));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND));
         event.setArchived(true);
         event.setUpdatedAt(LocalDateTime.now());
         eventRepository.save(event);
@@ -173,13 +138,13 @@ public class EventServiceImpl implements IEventService {
     public List<EventResponseDTO> getArchivedEvents() {
         return eventRepository.findByArchivedTrue().stream()
                 .map(e -> mapToResponseDTO(e, fetchUserSafely(e.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public void restoreEvent(Long idEvent) {
         Event event = eventRepository.findById(idEvent)
-                .orElseThrow(() -> new RuntimeException("Événement non trouvé"));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND));
         event.setArchived(false);
         event.setUpdatedAt(LocalDateTime.now());
         eventRepository.save(event);
@@ -189,17 +154,8 @@ public class EventServiceImpl implements IEventService {
     public void geocodeAllExistingEvents() {
         List<Event> events = eventRepository.findByLatitudeIsNull();
         for (Event event : events) {
-            if (event.getLocation() != null && !event.getLocation().isBlank()) {
-                double[] coords = geocodingService.geocodeAddress(event.getLocation());
-                if (coords != null) {
-                    event.setLatitude(coords[0]);
-                    event.setLongitude(coords[1]);
-                    eventRepository.save(event);
-                }
-                try { Thread.sleep(1100); } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); break;
-                }
-            }
+            boolean interrupted = geocodeSingleEvent(event);
+            if (interrupted) break;
         }
     }
 
@@ -213,11 +169,11 @@ public class EventServiceImpl implements IEventService {
         Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(direction, sortField));
         Specification<Event> spec = EventSpecification.buildFromFilter(filter);
         Page<Event> page = eventRepository.findAll(spec, pageable);
-        long totalCount  = eventRepository.count();
+        long totalCount = eventRepository.count();
 
         List<EventResponseDTO> content = page.getContent().stream()
                 .map(e -> mapToResponseDTO(e, fetchUserSafely(e.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
 
         PageResponseDTO<EventResponseDTO> response = new PageResponseDTO<>();
         response.setContent(content);
@@ -236,7 +192,56 @@ public class EventServiceImpl implements IEventService {
         return response;
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Private Helpers ───────────────────────────────────────────────────────
+
+    private void applyGeocoding(Event event, String location) {
+        if (location == null || location.isBlank()) return;
+        double[] coords = geocodingService.geocodeAddress(location);
+        if (coords != null && coords.length >= 2) {
+            event.setLatitude(coords[0]);
+            event.setLongitude(coords[1]);
+        }
+    }
+
+    private void updateLocationIfChanged(Event event, String newLocation) {
+        if (newLocation == null || newLocation.isBlank()) return;
+        boolean locationChanged = !newLocation.equals(event.getLocation());
+        event.setLocation(newLocation);
+        if (locationChanged || event.getLatitude() == null) {
+            applyGeocoding(event, newLocation);
+        }
+    }
+
+    private void createActivities(List<ActivityDTO> activities, Long eventId) {
+        for (ActivityDTO actDto : activities) {
+            try {
+                actDto.setEventId(eventId);
+                activityClient.createActivity(actDto);
+            } catch (Exception e) {
+                logger.warning("[EventService] Erreur création activité '" + actDto.getName() + "': " + e.getMessage());
+            }
+        }
+    }
+
+    private void deleteActivitiesSafely(Long eventId) {
+        try {
+            activityClient.deleteActivitiesByEventId(eventId);
+        } catch (Exception e) {
+            logger.warning("[EventService] Erreur suppression activités: " + e.getMessage());
+        }
+    }
+
+    private boolean geocodeSingleEvent(Event event) {
+        if (event.getLocation() == null || event.getLocation().isBlank()) return false;
+        applyGeocoding(event, event.getLocation());
+        try {
+            Thread.sleep(1100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return true;
+        }
+        return false;
+    }
 
     private UserDTO fetchUserSafely(Long userId) {
         if (userId == null) return null;

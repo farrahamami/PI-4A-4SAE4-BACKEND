@@ -20,7 +20,7 @@ public class InscriptionRequestDTO {
     @NotNull(message = "eventId est obligatoire")
     private Long eventId;
 
-    public InscriptionRequestDTO() {}
+
 
     public String getParticipantNom() { return participantNom; }
     public void setParticipantNom(String participantNom) { this.participantNom = participantNom; }

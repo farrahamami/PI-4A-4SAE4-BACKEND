@@ -17,7 +17,7 @@ public class PageResponseDTO<T> {
     private long filteredCount;
     private long totalCount;
 
-    public PageResponseDTO() {}
+
     public List<T> getContent() { return content; }
     public void setContent(List<T> content) { this.content = content; }
     public int getCurrentPage() { return currentPage; }

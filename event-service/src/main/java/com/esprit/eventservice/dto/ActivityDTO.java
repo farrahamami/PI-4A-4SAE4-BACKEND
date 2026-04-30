@@ -7,7 +7,7 @@ public class ActivityDTO {
     private String requirements;
     private Long eventId;   // ← AJOUTÉ : nécessaire pour lier l'activité à l'event
 
-    public ActivityDTO() {}
+
 
     public Long getIdActivity() { return idActivity; }
     public void setIdActivity(Long idActivity) { this.idActivity = idActivity; }

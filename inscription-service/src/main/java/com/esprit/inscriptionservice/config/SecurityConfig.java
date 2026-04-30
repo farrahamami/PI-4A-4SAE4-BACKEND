@@ -1,4 +1,4 @@
-package com.esprit.eventservice.Config;
+package com.esprit.inscriptionservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +13,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.disable())
                 .csrf(c -> c.disable())
                 .authorizeHttpRequests(a -> a.anyRequest().permitAll());
         return http.build();

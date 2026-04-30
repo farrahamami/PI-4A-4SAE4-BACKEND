@@ -25,7 +25,7 @@ public class EventResponseDTO {
     private boolean archived;
     private List<ActivityDTO> activities;
 
-    public EventResponseDTO() {}
+
     public Long getIdEvent() { return idEvent; }
     public void setIdEvent(Long idEvent) { this.idEvent = idEvent; }
     public String getTitle() { return title; }

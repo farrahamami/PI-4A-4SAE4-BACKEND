@@ -8,19 +8,23 @@ import com.esprit.inscriptionservice.entities.InscriptionStatus;
 import com.esprit.inscriptionservice.repositories.InscriptionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class InscriptionService {
 
     private static final Logger log = LoggerFactory.getLogger(InscriptionService.class);
+    private static final String INSCRIPTION_NOT_FOUND = "Inscription introuvable";
 
     private final InscriptionRepository inscriptionRepository;
     private final EventClient eventClient;
@@ -40,19 +44,12 @@ public class InscriptionService {
         this.emailService = emailService;
     }
 
-    // ─── Helpers ────────────────────────────────────────────────────────────────
-
-    /**
-     * Returns true if we are strictly before J-1 (i.e. event starts more than
-     * 1 full day from now). All lock-sensitive operations must call this.
-     */
     private boolean isBeforeDeadline(EventDTO event) {
-        if (event == null || event.getStartDate() == null) return true; // safe default
+        if (event == null || event.getStartDate() == null) return true;
         return LocalDateTime.now().isBefore(event.getStartDate().minusDays(1));
     }
 
     private long confirmedCount(Long eventId) {
-        // Counts every status that "holds" a seat: ACCEPTED, PROMOTED
         return inscriptionRepository.countByEventIdAndStatus(eventId, InscriptionStatus.ACCEPTED)
                 + inscriptionRepository.countByEventIdAndStatus(eventId, InscriptionStatus.PROMOTED);
     }
@@ -62,33 +59,28 @@ public class InscriptionService {
         return confirmedCount(eventId) >= event.getCapacity();
     }
 
-    // ─── Submit ─────────────────────────────────────────────────────────────────
-
     @Transactional
     public InscriptionResponseDTO submitInscription(InscriptionRequestDTO request) {
         EventDTO event = eventClient.getEventById(request.getEventId());
-        if (event == null) throw new RuntimeException("Événement introuvable: " + request.getEventId());
+        if (event == null) throw new IllegalArgumentException("Événement introuvable: " + request.getEventId());
 
         UserDTO user = userClient.getUserById(Math.toIntExact(request.getUserId()));
-        if (user == null) throw new RuntimeException("Utilisateur introuvable: " + request.getUserId());
+        if (user == null) throw new IllegalArgumentException("Utilisateur introuvable: " + request.getUserId());
 
-        // J-1 gate: inscriptions closed
         if (!isBeforeDeadline(event)) {
-            throw new RuntimeException("Les inscriptions sont fermées pour cet événement");
+            throw new IllegalStateException("Les inscriptions sont fermées pour cet événement");
         }
 
         if (inscriptionRepository.existsByUserIdAndEventId(request.getUserId(), request.getEventId())) {
-            throw new RuntimeException("Vous avez déjà soumis une demande pour cet événement");
+            throw new IllegalStateException("Vous avez déjà soumis une demande pour cet événement");
         }
 
         EventInscription inscription = buildInscription(request, user);
 
         if (isFull(event, request.getEventId())) {
-            // Place on waitlist instead
             inscription.setStatus(InscriptionStatus.WAITLIST);
             inscription.setWaitlistDate(LocalDateTime.now());
             EventInscription saved = inscriptionRepository.save(inscription);
-
             return mapToResponse(saved, event, user);
         }
 
@@ -97,15 +89,13 @@ public class InscriptionService {
         return mapToResponse(saved, event, user);
     }
 
-    // ─── Accept / Reject (admin) ─────────────────────────────────────────────
-
     @Transactional
     public InscriptionResponseDTO acceptInscription(Long inscriptionId) {
         EventInscription inscription = inscriptionRepository.findById(inscriptionId)
-                .orElseThrow(() -> new RuntimeException("Inscription introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(INSCRIPTION_NOT_FOUND));
 
         if (inscription.getStatus() != InscriptionStatus.PENDING)
-            throw new RuntimeException("Cette demande a déjà été traitée");
+            throw new IllegalStateException("Cette demande a déjà été traitée");
 
         inscription.setStatus(InscriptionStatus.ACCEPTED);
         inscriptionRepository.save(inscription);
@@ -123,8 +113,8 @@ public class InscriptionService {
                         fullName(inscription),
                         eventTitle(event), badgePath);
             }
-        } catch (Exception e) {
-            log.warn("Email d'acceptation non envoyé: {}", e.getMessage());
+        } catch (MailException e) {
+            log.warn("Email d'acceptation non envoyé pour inscription {}: {}", inscriptionId, e.getMessage());
         }
 
         return mapToResponse(inscription, event, fetchUserSafely(inscription.getUserId()));
@@ -133,10 +123,10 @@ public class InscriptionService {
     @Transactional
     public InscriptionResponseDTO rejectInscription(Long inscriptionId) {
         EventInscription inscription = inscriptionRepository.findById(inscriptionId)
-                .orElseThrow(() -> new RuntimeException("Inscription introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(INSCRIPTION_NOT_FOUND));
 
         if (inscription.getStatus() != InscriptionStatus.PENDING)
-            throw new RuntimeException("Cette demande a déjà été traitée");
+            throw new IllegalStateException("Cette demande a déjà été traitée");
 
         inscription.setStatus(InscriptionStatus.REJECTED);
         inscriptionRepository.save(inscription);
@@ -148,30 +138,27 @@ public class InscriptionService {
             if (email != null) {
                 emailService.sendRejectionEmail(email, fullName(inscription), eventTitle(event));
             }
-        } catch (Exception e) {
-            log.warn("Email de refus non envoyé: {}", e.getMessage());
+        } catch (MailException e) {
+            log.warn("Email de refus non envoyé pour inscription {}: {}", inscriptionId, e.getMessage());
         }
 
         return mapToResponse(inscription, event, fetchUserSafely(inscription.getUserId()));
     }
 
-    // ─── Cancel (participant) ────────────────────────────────────────────────
-
     @Transactional
     public InscriptionResponseDTO cancelInscription(Long inscriptionId) {
         EventInscription inscription = inscriptionRepository.findById(inscriptionId)
-                .orElseThrow(() -> new RuntimeException("Inscription introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(INSCRIPTION_NOT_FOUND));
 
         if (inscription.getStatus() == InscriptionStatus.CANCELLED)
-            throw new RuntimeException("Cette inscription est déjà annulée");
+            throw new IllegalStateException("Cette inscription est déjà annulée");
         if (inscription.getStatus() == InscriptionStatus.REJECTED)
-            throw new RuntimeException("Une inscription rejetée ne peut pas être annulée");
+            throw new IllegalStateException("Une inscription rejetée ne peut pas être annulée");
 
         EventDTO event = fetchEventSafely(inscription.getEventId());
 
-        // J-1 gate: cancellations locked
         if (!isBeforeDeadline(event)) {
-            throw new RuntimeException("Les annulations ne sont plus possibles à moins de 24h de l'événement");
+            throw new IllegalStateException("Les annulations ne sont plus possibles à moins de 24h de l'événement");
         }
 
         boolean wasConfirmed = inscription.getStatus() == InscriptionStatus.ACCEPTED
@@ -180,7 +167,6 @@ public class InscriptionService {
         inscription.setStatus(InscriptionStatus.CANCELLED);
         inscriptionRepository.save(inscription);
 
-        // Trigger FIFO promotion only when a confirmed seat is freed
         if (wasConfirmed) {
             promoteFromWaitlist(inscription.getEventId(), event, 1);
         }
@@ -188,21 +174,13 @@ public class InscriptionService {
         return mapToResponse(inscription, event, fetchUserSafely(inscription.getUserId()));
     }
 
-    // ─── Capacity increase (admin) ───────────────────────────────────────────
-
-    /**
-     * Called by an admin endpoint when the event capacity is increased.
-     * newCapacity is the NEW total capacity (already saved in event-service).
-     * We compute how many extra seats are now available and promote that many
-     * waitlisted participants (FIFO), but only if we are before J-1.
-     */
     @Transactional
     public void handleCapacityIncrease(Long eventId, int newCapacity) {
         EventDTO event = fetchEventSafely(eventId);
         long currentConfirmed = confirmedCount(eventId);
         long availableSeats = newCapacity - currentConfirmed;
 
-        if (availableSeats <= 0) return; // no new slots
+        if (availableSeats <= 0) return;
 
         if (!isBeforeDeadline(event)) {
             log.info("Capacity increased for event {} but J-1 passed — no promotions", eventId);
@@ -212,13 +190,6 @@ public class InscriptionService {
         promoteFromWaitlist(eventId, event, (int) availableSeats);
     }
 
-    // ─── FIFO promotion core ─────────────────────────────────────────────────
-
-    /**
-     * Promotes up to `count` participants from the WAITLIST (FIFO by waitlistDate).
-     * Generates their badge and sends acceptance email.
-     * Must be called only when isBeforeDeadline has already been checked.
-     */
     private void promoteFromWaitlist(Long eventId, EventDTO event, int count) {
         List<EventInscription> waitlist =
                 inscriptionRepository.findWaitlistByEventIdOrderedFIFO(eventId);
@@ -230,17 +201,13 @@ public class InscriptionService {
             candidate.setStatus(InscriptionStatus.PROMOTED);
             inscriptionRepository.save(candidate);
 
-            // Generate badge
             try {
                 String badgePath = badgeGeneratorService.generateBadge(candidate, event);
                 candidate.setBadgeImagePath(badgePath);
                 inscriptionRepository.save(candidate);
-            } catch (Exception e) {
+            } catch (com.esprit.inscriptionservice.exceptions.BadgeGenerationException e) {
                 log.warn("Badge non généré pour promotion {}: {}", candidate.getId(), e.getMessage());
             }
-
-            // Send promotion email
-
 
             promoted++;
         }
@@ -248,50 +215,53 @@ public class InscriptionService {
         log.info("Promoted {} participant(s) from waitlist for event {}", promoted, eventId);
     }
 
-    // ─── Read operations ─────────────────────────────────────────────────────
-
-    public byte[] getBadgeBytes(Long inscriptionId) throws Exception {
+    // ← FIXED: throws IOException instead of generic Exception
+    public byte[] getBadgeBytes(Long inscriptionId) throws IOException {
         EventInscription inscription = inscriptionRepository.findById(inscriptionId)
-                .orElseThrow(() -> new RuntimeException("Inscription introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(INSCRIPTION_NOT_FOUND));
+
         if (inscription.getStatus() != InscriptionStatus.ACCEPTED
                 && inscription.getStatus() != InscriptionStatus.PROMOTED)
-            throw new RuntimeException("Badge disponible uniquement pour les inscriptions acceptées");
+            throw new IllegalStateException("Badge disponible uniquement pour les inscriptions acceptées");
+
         if (inscription.getBadgeImagePath() == null)
-            throw new RuntimeException("Badge non généré");
-        java.io.File file = new java.io.File(inscription.getBadgeImagePath());
-        return java.nio.file.Files.readAllBytes(file.toPath());
+            throw new IllegalStateException("Badge non généré");
+
+        // ← also cleaned up inline java.io.* references, now using proper imports
+        File file = new File(inscription.getBadgeImagePath());
+        return Files.readAllBytes(file.toPath());
     }
 
     public List<InscriptionResponseDTO> getAllInscriptionsByEvent(Long eventId) {
         EventDTO event = fetchEventSafely(eventId);
         return inscriptionRepository.findByEventId(eventId).stream()
                 .map(i -> mapToResponse(i, event, fetchUserSafely(i.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<InscriptionResponseDTO> getInscriptionsByUser(Long userId) {
         return inscriptionRepository.findByUserId(userId).stream()
                 .map(i -> mapToResponse(i, fetchEventSafely(i.getEventId()), fetchUserSafely(i.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<InscriptionResponseDTO> getPendingInscriptions(Long eventId) {
         EventDTO event = fetchEventSafely(eventId);
         return inscriptionRepository.findByEventIdAndStatus(eventId, InscriptionStatus.PENDING).stream()
                 .map(i -> mapToResponse(i, event, fetchUserSafely(i.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<InscriptionResponseDTO> getWaitlistByEvent(Long eventId) {
         EventDTO event = fetchEventSafely(eventId);
         return inscriptionRepository.findWaitlistByEventIdOrderedFIFO(eventId).stream()
                 .map(i -> mapToResponse(i, event, fetchUserSafely(i.getUserId())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public void deleteInscription(Long inscriptionId) {
         EventInscription inscription = inscriptionRepository.findById(inscriptionId)
-                .orElseThrow(() -> new RuntimeException("Inscription introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(INSCRIPTION_NOT_FOUND));
         inscriptionRepository.delete(inscription);
     }
 
@@ -304,26 +274,38 @@ public class InscriptionService {
         EventDTO event = fetchEventSafely(eventId);
         long confirmed = confirmedCount(eventId);
         long waitlistSize = inscriptionRepository.countByEventIdAndStatus(eventId, InscriptionStatus.WAITLIST);
+
         Map<String, Object> status = new HashMap<>();
         status.put("eventId", eventId);
         status.put("capacity", event != null ? event.getCapacity() : 0);
         status.put("confirmedParticipants", confirmed);
         status.put("waitlistSize", waitlistSize);
         status.put("isFull", isFull(event, eventId));
-        status.put("isBeforeDeadline", isBeforeDeadline(event));
+
+        boolean beforeDeadline = isBeforeDeadline(event);
+        status.put("isBeforeDeadline", beforeDeadline);
+
         return status;
     }
 
-    // ─── Internal helpers ────────────────────────────────────────────────────
-
     private EventDTO fetchEventSafely(Long eventId) {
         if (eventId == null) return null;
-        try { return eventClient.getEventById(eventId); } catch (Exception e) { return null; }
+        try {
+            return eventClient.getEventById(eventId);
+        } catch (feign.FeignException e) {
+            log.warn("Événement non récupérable (id={}): {}", eventId, e.getMessage());
+            return null;
+        }
     }
 
     private UserDTO fetchUserSafely(Long userId) {
         if (userId == null) return null;
-        try { return userClient.getUserById(Math.toIntExact(userId)); } catch (Exception e) { return null; }
+        try {
+            return userClient.getUserById(Math.toIntExact(userId));
+        } catch (feign.FeignException e) {
+            log.warn("Utilisateur non récupérable (id={}): {}", userId, e.getMessage());
+            return null;
+        }
     }
 
     private EventInscription buildInscription(InscriptionRequestDTO request, UserDTO user) {
@@ -343,8 +325,13 @@ public class InscriptionService {
     }
 
     private String resolveEmail(EventInscription i, UserDTO user) {
-        return i.getParticipantEmail() != null ? i.getParticipantEmail()
-                : (user != null ? user.getEmail() : null);
+        if (i.getParticipantEmail() != null) {
+            return i.getParticipantEmail();
+        }
+        if (user != null) {
+            return user.getEmail();
+        }
+        return null;
     }
 
     private String fullName(EventInscription i) {
@@ -354,8 +341,6 @@ public class InscriptionService {
     private String eventTitle(EventDTO event) {
         return event != null ? event.getTitle() : "Événement";
     }
-
-
 
     private InscriptionResponseDTO mapToResponse(EventInscription i, EventDTO event, UserDTO user) {
         InscriptionResponseDTO dto = new InscriptionResponseDTO();

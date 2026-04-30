@@ -87,10 +87,18 @@ public class EventController {
         filter.setLocationContains(locationContains);
         filter.setDescriptionContains(descriptionContains);
         if (status != null) {
-            try { filter.setStatus(EventStatus.valueOf(status.toUpperCase())); } catch (IllegalArgumentException ignored) {}
+            try {
+                filter.setStatus(EventStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // Invalid status value ignored, no filter applied
+            }
         }
         if (category != null) {
-            try { filter.setCategory(CategoryEvent.valueOf(category.toUpperCase())); } catch (IllegalArgumentException ignored) {}
+            try {
+                filter.setCategory(CategoryEvent.valueOf(category.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                // Invalid category value ignored, no filter applied
+            }
         }
         filter.setStartDateFrom(startDateFrom);
         filter.setStartDateTo(startDateTo);
