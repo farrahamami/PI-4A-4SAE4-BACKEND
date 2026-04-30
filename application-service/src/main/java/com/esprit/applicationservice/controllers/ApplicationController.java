@@ -18,7 +18,7 @@ public class ApplicationController {
     private final ApplicationService applicationService;
 
     @PostMapping
-    public ResponseEntity<?> submit(@RequestBody ApplicationRequestDto dto) {
+    public ResponseEntity<Object> submit(@RequestBody ApplicationRequestDto dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.submit(dto));
         } catch (IllegalStateException e) {

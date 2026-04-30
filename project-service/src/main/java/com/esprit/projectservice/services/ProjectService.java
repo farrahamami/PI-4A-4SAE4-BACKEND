@@ -22,18 +22,20 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final TaskRepository taskRepository;
+    private static final String PROJECT_NOT_FOUND = "Project not found: ";
+
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public List<ProjectResponse> getAllProjects() {
-        return projectRepository.findAll().stream().map(this::toResponse).collect(Collectors.toList());
+        return projectRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     public List<ProjectResponse> getProjectsByClient(Integer clientId) {
-        return projectRepository.findByClientId(clientId).stream().map(this::toResponse).collect(Collectors.toList());
+        return projectRepository.findByClientId(clientId).stream().map(this::toResponse).toList();
     }
 
     public ProjectResponse getProjectById(Long id) {
-        return toResponse(projectRepository.findById(id).orElseThrow(() -> new RuntimeException("Project not found: " + id)));
+        return toResponse(projectRepository.findById(id).orElseThrow(() ->new RuntimeException(PROJECT_NOT_FOUND + id)));
     }
 
     public ProjectResponse createProject(ProjectRequest req) {
@@ -55,7 +57,7 @@ public class ProjectService {
     }
 
     public ProjectResponse updateProject(Long id, ProjectRequest req) {
-        Project project = projectRepository.findById(id).orElseThrow(() -> new RuntimeException("Project not found: " + id));
+        Project project = projectRepository.findById(id).orElseThrow(() -> new RuntimeException(PROJECT_NOT_FOUND + id));
         project.setTitle(req.getTitle()); project.setDescription(req.getDescription());
         project.setBudget(req.getBudget()); project.setStartDate(parseDate(req.getStartDate()));
         project.setEndDate(parseDate(req.getEndDate()));
@@ -72,7 +74,7 @@ public class ProjectService {
     }
 
     public void deleteProject(Long id) {
-        Project project = projectRepository.findById(id).orElseThrow(() -> new RuntimeException("Project not found: " + id));
+        Project project = projectRepository.findById(id).orElseThrow(() -> new RuntimeException(PROJECT_NOT_FOUND + id));
         if (ProjectStatus.OPEN.equals(project.getStatus())) {
             throw new IllegalStateException("Cannot delete an OPEN project.");
         }
@@ -80,12 +82,12 @@ public class ProjectService {
     }
 
     public List<ProjectResponse> getProjectsByStatus(ProjectStatus status) {
-        return projectRepository.findByStatus(status).stream().map(this::toResponse).collect(Collectors.toList());
+        return projectRepository.findByStatus(status).stream().map(this::toResponse).toList();
     }
 
     public List<ProjectResponse> searchProjects(String query) {
         return projectRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(query, query)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream().map(this::toResponse).toList();
     }
 
     private ProjectResponse toResponse(Project p) {
@@ -103,10 +105,10 @@ public class ProjectService {
                         .startDate(t.getStartDate() != null ? t.getStartDate().toString() : null)
                         .endDate(t.getEndDate() != null ? t.getEndDate().toString() : null)
                         .priority(t.getPriority() != null ? t.getPriority().name() : null)
-                        .milestone(t.getMilestone()).build()).collect(Collectors.toList()))
+                        .milestone(t.getMilestone()).build()).toList())
                 .requiredSkills(p.getRequiredSkills().stream().map(s -> ProjectResponse.SkillInfo.builder()
                         .id(s.getId()).skillName(s.getSkillName()).level(s.getLevel())
-                        .yearsExperience(s.getYearsExperience()).build()).collect(Collectors.toList()))
+                        .yearsExperience(s.getYearsExperience()).build()).toList())
                 .build();
     }
 
