@@ -42,18 +42,19 @@ pipeline {
         }
 
         stage('🔍 SonarQube Analysis') {
-            steps {
-                dir('subscription-service') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
-                            mvn sonar:sonar \
-                              -Dsonar.projectKey=${SONAR_PROJECT} \
-                              -Dsonar.projectName=${SONAR_PROJECT} \
-                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-                        '''
-                    }
-                }
+    steps {
+        dir('promo-service') {
+            withSonarQubeEnv('SonarQube') {
+                sh '''
+                    chmod +x mvnw && ./mvnw sonar:sonar \
+                      -Dsonar.projectKey=${SONAR_PROJECT} \
+                      -Dsonar.projectName=${SONAR_PROJECT} \
+                      -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                '''
             }
+        }
+    }
+}
         }
 
         stage('🐳 Docker Build & Push') {
