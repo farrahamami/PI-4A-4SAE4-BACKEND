@@ -25,7 +25,7 @@ pipeline {
         stage('🔨 Build & Test') {
             steps {
                 dir('subscription-service') {
-                    sh './mvnw clean package -B'
+                    sh 'chmod +x mvnw && ./mvnw clean package -B'
                 }
             }
             post {

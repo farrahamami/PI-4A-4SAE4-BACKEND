@@ -25,7 +25,7 @@ pipeline {
         stage('🔨 Build & Test') {
             steps {
                 dir('promo-service') {
-                    sh './mvnw clean package -B'
+                    sh 'chmod +x mvnw && ./mvnw clean package -B'
                 }
             }
             post {
