@@ -1,6 +1,10 @@
    pipeline {
     agent any
 
+     tools {
+            jdk 'JDK17'
+            maven 'Maven3'
+        }
 
     environment {
         JAVA_HOME        = '/usr/lib/jvm/java-21-openjdk-amd64'
