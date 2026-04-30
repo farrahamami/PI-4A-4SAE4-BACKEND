@@ -3,6 +3,7 @@ package com.esprit.inscriptionservice.services;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,7 @@ public class EmailService {
             }
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Erreur lors de l'envoi de l'email", e);
+            throw new MailSendException("Erreur lors de l'envoi de l'email", e);
         }
     }
 
@@ -58,7 +59,7 @@ public class EmailService {
             helper.setText(htmlContent, true);
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Erreur lors de l'envoi de l'email", e);
+            throw new MailSendException("Erreur lors de l'envoi de l'email", e);
         }
     }
 }

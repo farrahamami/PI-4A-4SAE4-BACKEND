@@ -6,7 +6,7 @@ public class UserDTO {
     private String lastName;
     private String email;
 
-    public UserDTO() {}
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
     public String getName() { return name; }

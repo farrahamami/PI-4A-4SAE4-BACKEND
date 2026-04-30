@@ -51,7 +51,6 @@ class EventServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // ✅ Fix : utiliser les setters au lieu du constructeur inexistant
         validRequest = new EventRequestDTO();
         validRequest.setTitle("Conférence DevOps");
         validRequest.setDescription("Description de l'événement");
@@ -108,7 +107,7 @@ class EventServiceImplTest {
     @Test
     @DisplayName("addEvent - erreur : date de fin avant date de début → RuntimeException")
     void addEvent_endDateBeforeStartDate_throwsException() {
-        validRequest.setEndDate(LocalDateTime.of(2026, 5, 1, 9, 0)); // avant startDate
+        validRequest.setEndDate(LocalDateTime.of(2026, 5, 1, 9, 0));
 
         assertThatThrownBy(() -> eventService.addEvent(validRequest))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -360,7 +359,7 @@ class EventServiceImplTest {
         EventFilterDTO filter = new EventFilterDTO();
         filter.setPage(0);
         filter.setSize(10);
-        filter.setSortBy("champInvalide"); // non autorisé
+        filter.setSortBy("champInvalide");
         filter.setSortDir("desc");
 
         Page<Event> page = new PageImpl<>(List.of());
@@ -377,7 +376,7 @@ class EventServiceImplTest {
     void filterEvents_sizeClampedTo100() {
         EventFilterDTO filter = new EventFilterDTO();
         filter.setPage(0);
-        filter.setSize(999); // dépasse le max
+        filter.setSize(999);
         filter.setSortBy("idEvent");
         filter.setSortDir("asc");
 
@@ -385,7 +384,6 @@ class EventServiceImplTest {
         when(eventRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
         when(eventRepository.count()).thenReturn(0L);
 
-        // Vérifie que le pageable reçoit bien size=100 (capturé via argThat)
         eventService.filterEvents(filter);
 
         verify(eventRepository).findAll(
@@ -408,5 +406,158 @@ class EventServiceImplTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getUserName()).isNull();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // geocodeAllExistingEvents()  ← NOUVEAUX TESTS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("geocodeAllExistingEvents - liste vide : aucun appel geocoding")
+    void geocodeAllExistingEvents_emptyList() {
+        when(eventRepository.findByLatitudeIsNull()).thenReturn(List.of());
+
+        eventService.geocodeAllExistingEvents();
+
+        verify(geocodingService, never()).geocodeAddress(any());
+    }
+
+    @Test
+    @DisplayName("geocodeAllExistingEvents - avec événements : appelle geocoding pour chaque event")
+    void geocodeAllExistingEvents_withEvents() {
+        savedEvent.setLocation("Tunis");
+        when(eventRepository.findByLatitudeIsNull()).thenReturn(List.of(savedEvent));
+
+        eventService.geocodeAllExistingEvents();
+
+        verify(geocodingService).geocodeAddress("Tunis");
+    }
+
+    @Test
+    @DisplayName("geocodeAllExistingEvents - event sans location : geocoding ignoré")
+    void geocodeAllExistingEvents_eventWithNullLocation_skipsGeocoding() {
+        savedEvent.setLocation(null);
+        when(eventRepository.findByLatitudeIsNull()).thenReturn(List.of(savedEvent));
+
+        eventService.geocodeAllExistingEvents();
+
+        verify(geocodingService, never()).geocodeAddress(any());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // applyGeocoding() — branche location null/blank  ← NOUVEAUX TESTS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("addEvent - location null : geocoding non appelé")
+    void addEvent_nullLocation_noGeocoding() {
+        validRequest.setLocation(null);
+        when(userClient.getUserById(1)).thenReturn(userDTO);
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+
+        eventService.addEvent(validRequest);
+
+        verify(geocodingService, never()).geocodeAddress(any());
+    }
+
+    @Test
+    @DisplayName("addEvent - location blank : geocoding non appelé")
+    void addEvent_blankLocation_noGeocoding() {
+        validRequest.setLocation("   ");
+        when(userClient.getUserById(1)).thenReturn(userDTO);
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+
+        eventService.addEvent(validRequest);
+
+        verify(geocodingService, never()).geocodeAddress(any());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // createActivities() — catch Exception  ← NOUVEAUX TESTS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("addEvent - activityClient en échec : ne lève pas d'exception")
+    void addEvent_activityClientFails_doesNotThrow() {
+        ActivityDTO act = new ActivityDTO();
+        act.setName("Test");
+        validRequest.setActivities(List.of(act));
+
+        when(userClient.getUserById(1)).thenReturn(userDTO);
+        when(geocodingService.geocodeAddress(any())).thenReturn(null);
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+        doThrow(new RuntimeException("Feign error"))
+                .when(activityClient).createActivity(any());
+
+        assertThatCode(() -> eventService.addEvent(validRequest))
+                .doesNotThrowAnyException();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // deleteActivitiesSafely() — catch Exception  ← NOUVEAUX TESTS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("updateEvent - deleteActivities en échec : ne lève pas d'exception")
+    void updateEvent_deleteActivitiesFails_doesNotThrow() {
+        ActivityDTO act = new ActivityDTO();
+        act.setName("Act");
+        validRequest.setActivities(List.of(act));
+
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(savedEvent));
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+        when(userClient.getUserById(anyInt())).thenReturn(userDTO);
+        when(geocodingService.geocodeAddress(any())).thenReturn(null);
+        doThrow(new RuntimeException("Feign error"))
+                .when(activityClient).deleteActivitiesByEventId(any());
+
+        assertThatCode(() -> eventService.updateEvent(1L, validRequest))
+                .doesNotThrowAnyException();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // updateLocationIfChanged()  ← NOUVEAUX TESTS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("updateEvent - location blank : geocoding non appelé")
+    void updateEvent_blankLocation_noGeocoding() {
+        validRequest.setLocation("   ");
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(savedEvent));
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+        when(userClient.getUserById(anyInt())).thenReturn(userDTO);
+
+        eventService.updateEvent(1L, validRequest);
+
+        verify(geocodingService, never()).geocodeAddress(any());
+    }
+
+    @Test
+    @DisplayName("updateEvent - location inchangée mais latitude null : geocoding appelé quand même")
+    void updateEvent_sameLocationButLatitudeNull_triggersGeocoding() {
+        savedEvent.setLocation("Tunis, Tunisie");
+        savedEvent.setLatitude(null);
+
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(savedEvent));
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+        when(userClient.getUserById(anyInt())).thenReturn(userDTO);
+        when(geocodingService.geocodeAddress("Tunis, Tunisie")).thenReturn(new double[]{36.8, 10.18});
+
+        eventService.updateEvent(1L, validRequest);
+
+        verify(geocodingService).geocodeAddress("Tunis, Tunisie");
+    }
+
+    @Test
+    @DisplayName("updateEvent - location null : geocoding non appelé")
+    void updateEvent_nullLocation_noGeocoding() {
+        validRequest.setLocation(null);
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(savedEvent));
+        when(eventRepository.save(any())).thenReturn(savedEvent);
+        when(userClient.getUserById(anyInt())).thenReturn(userDTO);
+
+        eventService.updateEvent(1L, validRequest);
+
+        verify(geocodingService, never()).geocodeAddress(any());
     }
 }
