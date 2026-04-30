@@ -1,4 +1,4 @@
-pipeline {
+   pipeline {
     agent any
 
     tools {
@@ -14,7 +14,6 @@ pipeline {
         IMAGE_NAME       = "${DOCKER_NAMESPACE}/${SERVICE_NAME}"
         IMAGE_TAG        = "${env.BUILD_NUMBER}"
         SONAR_PROJECT    = 'project-service'
-        APP_PORT         = '8094'
     }
 
     options {
@@ -30,38 +29,19 @@ pipeline {
             }
         }
 
-        stage('🔨 Compile') {
+        stage('🔨 Build & Package') {
             steps {
                 dir('project-service') {
-                    sh 'mvn clean compile -B'
+                    sh 'mvn clean package -DskipTests -B'
                 }
             }
         }
 
-        stage('🧪 Tests + Coverage JaCoCo') {
+        stage('🧪 Tests') {
             steps {
                 dir('project-service') {
                     sh 'mvn test -B'
                 }
-            }
-            post {
-                always {
-                    junit testResults: 'project-service/target/surefire-reports/*.xml',
-                          allowEmptyResults: true
-                    jacoco execPattern: 'project-service/target/jacoco.exec',
-                           classPattern: 'project-service/target/classes',
-                           sourcePattern: 'project-service/src/main/java',
-                           exclusionPattern: '**/dto/**,**/entities/**,**/config/**,**/*Application.class'
-                }
-            }
-        }
-
-        stage('📦 Package JAR') {
-            steps {
-                dir('project-service') {
-                    sh 'mvn package -DskipTests -B'
-                }
-                archiveArtifacts artifacts: 'project-service/target/*.jar', fingerprint: true
             }
         }
 
@@ -81,16 +61,11 @@ pipeline {
             }
         }
 
-        stage('🐳 Docker Build') {
+        stage('🐳 Docker Build & Push') {
             steps {
                 dir('project-service') {
                     sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
                 }
-            }
-        }
-
-        stage('📤 Docker Push') {
-            steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-credentials',
                     usernameVariable: 'DOCKER_USER',
