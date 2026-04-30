@@ -146,6 +146,55 @@
       - "6334:6334" # gRPC API
     volumes:
       - qdrant_data:/qdrant/storage
+
+  # --- ML SERVICE (Ads-ML-Service) ---
+  ads-ml-service:
+    build:
+      context: ./ads-ml-service
+      dockerfile: Dockerfile
+    container_name: ads-ml-service
+    restart: always
+    ports:
+      - "8099:8099"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_TOPIC_AD_EVENTS=ad-events
+      - KAFKA_TOPIC_ML_PREDICTIONS=ml-predictions
+      - KAFKA_CONSUMER_GROUP=ads-ml-service
+      - CLICKHOUSE_HOST=clickhouse-server
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DB=ads_analytics
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=ads-ai-vs-human
+      - ADS_SERVICE_URL=http://ads-service:8090
+      - MODEL_DIR=/app/models
+      - RETRAIN_INTERVAL_MINUTES=30
+      - MIN_SAMPLES_FOR_TRAINING=10
+    volumes:
+      - ml_models:/app/models
+    depends_on:
+      - kafka
+      - clickhouse
+      - mlflow
+
+  # --- MLFLOW TRACKING SERVER ---
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.19.0
+    container_name: mlflow
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+
 volumes:
   ads_data:
   ollama_storage:
@@ -153,3 +202,5 @@ volumes:
   sonar_data:
   grafana_data:
   qdrant_data:
+  ml_models:
+  mlflow_data:
