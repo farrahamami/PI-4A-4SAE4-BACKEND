@@ -32,12 +32,7 @@ pipeline {
             }
         }
 
-        stage('Deploy MySQL') {
-            steps {
-                sh "kubectl apply -f event-service/k8s/mysql-deployment.yaml"
-                sh "kubectl rollout status deployment/event-mysql -n ${K8S_NAMESPACE} --timeout=120s"
-            }
-        }
+
 
         stage('Deploy to Kubernetes') {
             steps {
