@@ -94,16 +94,12 @@
             }
         }
 
-        stage('💾 Save build info for CD') {
-            steps {
-                writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
-                archiveArtifacts artifacts: 'last-build.txt'
-            }
-        }
-    }
+       
 
     post {
         success {
+            writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
+            archiveArtifacts artifacts: 'last-build.txt'
             echo "✅ CI OK : image ${IMAGE_NAME}:${IMAGE_TAG} poussée sur DockerHub."
         }
         failure {
