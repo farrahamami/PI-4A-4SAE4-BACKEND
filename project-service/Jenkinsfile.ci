@@ -1,11 +1,9 @@
-   pipeline {
+pipeline {
     agent any
-
-     tools {
-            jdk 'JDK17'
-            maven 'Maven3'
-        }
-
+    tools {
+        jdk 'JDK17'
+        maven 'Maven3'
+    }
     environment {
         JAVA_HOME        = '/usr/lib/jvm/java-21-openjdk-amd64'
         PATH             = "/usr/lib/jvm/java-21-openjdk-amd64/bin:${env.PATH}"
@@ -15,32 +13,29 @@
         IMAGE_TAG        = "${env.BUILD_NUMBER}"
         SONAR_PROJECT    = 'project-service'
     }
-
     options {
         timeout(time: 40, unit: 'MINUTES')
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
-
     stages {
-       stage('📥 Checkout') {
-           steps {
-               checkout([$class: 'GitSCM',
-                   branches: [[name: '*/devops/on-integrated6sur6/ads_cicd_k8s']],
-                   extensions: [
-                       [$class: 'CloneOption', depth: 1, shallow: true, noTags: true, timeout: 60],
-                       [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
-                           [$class: 'SparseCheckoutPath', path: 'project-service/']
-                       ]]
-                   ],
-                   userRemoteConfigs: [[
-                       credentialsId: 'github-credentials',
-                       url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND'
-                   ]]
-               ])
-           }
-       }
-
+        stage('📥 Checkout') {
+            steps {
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/devops/on-integrated6sur6/ads_cicd_k8s']],
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, shallow: true, noTags: true, timeout: 60],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                            [$class: 'SparseCheckoutPath', path: 'project-service/']
+                        ]]
+                    ],
+                    userRemoteConfigs: [[
+                        credentialsId: 'github-credentials',
+                        url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND'
+                    ]]
+                ])
+            }
+        }
         stage('🔨 Build & Package') {
             steps {
                 dir('project-service') {
@@ -49,7 +44,6 @@
                 }
             }
         }
-
         stage('🧪 Tests') {
             steps {
                 dir('project-service') {
@@ -57,7 +51,6 @@
                 }
             }
         }
-
         stage('🔍 SonarQube Analysis') {
             steps {
                 dir('project-service') {
@@ -73,7 +66,6 @@
                 }
             }
         }
-
         stage('🐳 Docker Build & Push') {
             steps {
                 dir('project-service') {
@@ -93,9 +85,7 @@
                 }
             }
         }
-
-       
-
+    }
     post {
         success {
             writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
