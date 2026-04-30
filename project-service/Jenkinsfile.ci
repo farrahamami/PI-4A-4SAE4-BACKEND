@@ -23,11 +23,23 @@
     }
 
     stages {
-        stage('📥 Checkout') {
-            steps {
-                checkout scm
-            }
-        }
+       stage('📥 Checkout') {
+           steps {
+               checkout([$class: 'GitSCM',
+                   branches: [[name: '*/devops/on-integrated6sur6/ads_cicd_k8s']],
+                   extensions: [
+                       [$class: 'CloneOption', depth: 1, shallow: true, noTags: true, timeout: 60],
+                       [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                           [$class: 'SparseCheckoutPath', path: 'project-service/']
+                       ]]
+                   ],
+                   userRemoteConfigs: [[
+                       credentialsId: 'github-credentials',
+                       url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND'
+                   ]]
+               ])
+           }
+       }
 
         stage('🔨 Build & Package') {
             steps {
