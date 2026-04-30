@@ -6,6 +6,7 @@ pipeline {
         K8S_NAMESPACE = "default"
         APP_NAME = "event-service"
         APP_PORT = "8085"
+        KUBECONFIG = credentials('kubeconfig-file')
     }
 
     stages {
