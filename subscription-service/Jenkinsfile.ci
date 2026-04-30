@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'JDK21'
-        maven 'Maven3'
-    }
-
     environment {
         SERVICE_NAME     = 'subscription-service'
         DOCKER_NAMESPACE = 'farahchbeb'
@@ -27,18 +22,10 @@ pipeline {
             }
         }
 
-        stage('🔨 Compile') {
+        stage('🔨 Build & Test') {
             steps {
                 dir('subscription-service') {
-                    sh 'mvn clean compile -B'
-                }
-            }
-        }
-
-        stage('🧪 Tests + Coverage JaCoCo') {
-            steps {
-                dir('subscription-service') {
-                    sh 'mvn test -B'
+                    sh 'mvn clean package -B'
                 }
             }
             post {
@@ -49,16 +36,8 @@ pipeline {
                            classPattern: 'subscription-service/target/classes',
                            sourcePattern: 'subscription-service/src/main/java',
                            exclusionPattern: '**/dto/**,**/entities/**,**/enums/**,**/config/**,**/*Application.class'
+                    archiveArtifacts artifacts: 'subscription-service/target/*.jar', fingerprint: true
                 }
-            }
-        }
-
-        stage('📦 Package JAR') {
-            steps {
-                dir('subscription-service') {
-                    sh 'mvn package -DskipTests -B'
-                }
-                archiveArtifacts artifacts: 'subscription-service/target/*.jar', fingerprint: true
             }
         }
 
@@ -77,12 +56,22 @@ pipeline {
             }
         }
 
-        stage('🐳 Docker Build') {
+        stage('🐳 Docker Build & Push') {
             steps {
                 dir('subscription-service') {
-                    sh '''
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
-                    '''
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh '''
+                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker push ${IMAGE_NAME}:latest
+                            docker logout
+                        '''
+                    }
                 }
             }
         }
@@ -90,10 +79,6 @@ pipeline {
         stage('🔒 Trivy Security Scan') {
             steps {
                 sh '''
-                    echo "=========================================="
-                    echo "Scan de securite Trivy"
-                    echo "=========================================="
-
                     trivy image \
                         --severity HIGH,CRITICAL \
                         --scanners vuln \
@@ -114,31 +99,12 @@ pipeline {
                         --format json \
                         --output trivy-report.json \
                         ${IMAGE_NAME}:${IMAGE_TAG} || true
-
-                    echo "Scan termine"
                 '''
             }
             post {
                 always {
                     archiveArtifacts artifacts: 'trivy-report.json',
                                      allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage('📤 Docker Push') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${IMAGE_NAME}:latest
-                        docker logout
-                    '''
                 }
             }
         }
