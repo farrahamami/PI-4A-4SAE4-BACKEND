@@ -83,7 +83,7 @@ pipeline {
 
        stage('🐳 Docker Build & Push') {
             steps {
-                dir('project-service') {
+                dir('skill-service') {
                     sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
                 }
                 withCredentials([usernamePassword(
