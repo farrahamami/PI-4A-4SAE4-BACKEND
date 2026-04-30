@@ -24,46 +24,42 @@ pipeline {
     }
 
     stages {
-        stage('📥 Checkout') {
+       stage('📥 Checkout') {
             steps {
-                checkout scm
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/devops/on-integrated6sur6/ads_cicd_k8s']],
+                    extensions: [
+                        [$class: 'CloneOption', depth: 1, shallow: true, noTags: true, timeout: 60],
+                        [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+                            [$class: 'SparseCheckoutPath', path: 'skill-service/']
+                        ]]
+                    ],
+                    userRemoteConfigs: [[
+                        credentialsId: 'github-credentials',
+                        url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND'
+                    ]]
+                ])
             }
         }
 
-        stage('🔨 Compile') {
+       stage('🔨 Build & Package') {
             steps {
                 dir('skill-service') {
-                    sh 'mvn clean compile -B'
+                    sh 'java -version'
+                    sh 'mvn clean package -DskipTests -B'
                 }
             }
         }
-
-        stage('🧪 Tests + Coverage JaCoCo') {
+        stage('🧪 Tests') {
             steps {
                 dir('skill-service') {
                     sh 'mvn test -B'
                 }
             }
-            post {
-                always {
-                    junit testResults: 'skill-service/target/surefire-reports/*.xml',
-                          allowEmptyResults: true
-                    jacoco execPattern: 'skill-service/target/jacoco.exec',
-                           classPattern: 'skill-service/target/classes',
-                           sourcePattern: 'skill-service/src/main/java',
-                           exclusionPattern: '**/dto/**,**/entities/**,**/config/**,**/*Application.class'
-                }
-            }
+           
+            
         }
 
-        stage('📦 Package JAR') {
-            steps {
-                dir('skill-service') {
-                    sh 'mvn package -DskipTests -B'
-                }
-                archiveArtifacts artifacts: 'skill-service/target/*.jar', fingerprint: true
-            }
-        }
 
         stage('🔍 SonarQube Analysis') {
             steps {
@@ -81,16 +77,15 @@ pipeline {
             }
         }
 
-        stage('🐳 Docker Build') {
+        
+
+       
+
+       stage('🐳 Docker Build & Push') {
             steps {
-                dir('skill-service') {
+                dir('project-service') {
                     sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .'
                 }
-            }
-        }
-
-        stage('📤 Docker Push') {
-            steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-credentials',
                     usernameVariable: 'DOCKER_USER',
@@ -105,17 +100,12 @@ pipeline {
                 }
             }
         }
-
-        stage('💾 Save build info for CD') {
-            steps {
-                writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
-                archiveArtifacts artifacts: 'last-build.txt'
-            }
-        }
     }
 
     post {
         success {
+            writeFile file: 'last-build.txt', text: "${IMAGE_TAG}"
+            archiveArtifacts artifacts: 'last-build.txt'
             echo "✅ CI OK : image ${IMAGE_NAME}:${IMAGE_TAG} poussée sur DockerHub."
         }
         failure {
