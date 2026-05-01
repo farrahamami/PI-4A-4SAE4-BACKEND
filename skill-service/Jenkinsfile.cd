@@ -65,6 +65,21 @@ pipeline {
                 '''
             }
         }
+
+        stage('Load Test K6') {
+            steps {
+                sh '''
+                    docker run --rm \
+                    -v /var/lib/jenkins/k6:/k6 \
+                    grafana/k6 run /k6/loadtest.js
+                '''
+            }
+            post {
+                always {
+                    echo 'K6 Load Test terminé'
+                }
+            }
+        }
     }
 
     post {
