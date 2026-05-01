@@ -4,41 +4,27 @@ pipeline {
     environment {
         DOCKER_IMAGE = "marahmarah123/event-service"
         K8S_NAMESPACE = "default"
-        APP_NAME      = "event-service"
-        APP_PORT      = "8085"
-        NODE_PORT     = "30085"
-        KUBECONFIG    = "/var/lib/jenkins/.kube/config"
+        APP_NAME     = "event-service"
+        APP_PORT     = "8085"
+        KUBECONFIG   = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
 
         stage('Récupérer le tag CI') {
             steps {
-                copyArtifacts(
-                    projectName: 'event-service-CI',
-                    selector: lastSuccessful(),
-                    filter: 'event-service-tag.txt'
-                )
+                copyArtifacts(projectName: 'event-service-CI', selector: lastSuccessful(), filter: 'event-service-tag.txt')
                 script {
                     env.DOCKER_TAG = readFile('event-service-tag.txt').trim()
-                    echo "Tag récupéré : ${env.DOCKER_TAG}"
                 }
             }
         }
 
-        stage('Vérifier Minikube') {
+        stage('Deploy') {
             steps {
                 sh """
-                    sudo minikube status || sudo minikube start --driver=none
-                    sudo kubectl wait --for=condition=Ready node/minikube --timeout=120s
-                """
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh """
-                    sudo kubectl apply -f - <<EOF
+                    minikube status || minikube start
+                    kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -78,19 +64,11 @@ spec:
   ports:
   - port: ${APP_PORT}
     targetPort: ${APP_PORT}
-    nodePort: ${NODE_PORT}
+    nodePort: 30085
   type: NodePort
 EOF
-                    sudo kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
-                """
-            }
-        }
-
-        stage('URL du service') {
-            steps {
-                sh """
-                    MINIKUBE_IP=\$(sudo minikube ip)
-                    echo "✅ URL du service : http://\${MINIKUBE_IP}:${NODE_PORT}"
+                    kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
+                    echo "URL: http://\$(minikube ip):30085"
                 """
             }
         }
