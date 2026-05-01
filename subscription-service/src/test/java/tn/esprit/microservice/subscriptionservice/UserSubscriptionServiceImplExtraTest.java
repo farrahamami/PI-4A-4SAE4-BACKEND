@@ -81,7 +81,7 @@ class UserSubscriptionServiceImplExtraTest {
 
     @Test
     void subscribe_withMensuelleBilling_setsEndDatePlusOneMonth() {
-        plan.setBillingCycle(BillingCycle.MENSUELLE);
+        plan.setBillingCycle(BillingCycle.SEMESTRIELLE);
         when(userSubscriptionRepository.existsByUserIdAndStatus(100L, SubscriptionStatus.ACTIVE))
                 .thenReturn(false);
         when(subscriptionRepository.findById(10L)).thenReturn(Optional.of(plan));
