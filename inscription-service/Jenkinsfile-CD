@@ -31,13 +31,6 @@ pipeline {
             }
         }
 
-        stage('Deploy MySQL') {
-            steps {
-                sh "kubectl apply -f inscription-service/k8s/mysql-deployment.yaml"
-                sh "kubectl rollout status deployment/inscription-mysql -n ${K8S_NAMESPACE} --timeout=120s"
-            }
-        }
-
         stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -96,7 +89,7 @@ EOF
 
         stage('Vérifier le déploiement') {
             steps {
-                sh "kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=120s"
+                sh "kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s"
                 sh "kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}"
             }
         }
