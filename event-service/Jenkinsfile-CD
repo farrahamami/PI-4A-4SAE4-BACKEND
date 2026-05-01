@@ -24,8 +24,8 @@ pipeline {
         stage('Vérifier Minikube') {
             steps {
                 sh """
-                    minikube status || minikube start --driver=none
-                    kubectl wait --for=condition=Ready node/minikube --timeout=120s
+                    sudo minikube status || minikube start --driver=none
+                    sudo kubectl wait --for=condition=Ready node/minikube --timeout=120s
                 """
             }
         }
@@ -84,8 +84,8 @@ EOF
         stage('URL du service') {
             steps {
                 sh """
-                    minikube status || minikube start --driver=none
-                    MINIKUBE_IP=\$(minikube ip)
+                    sudo minikube status || minikube start --driver=none
+                     MINIKUBE_IP=\$(minikube ip)
                     echo "✅ URL du service : http://\${MINIKUBE_IP}:${NODE_PORT}"
                 """
             }
