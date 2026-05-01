@@ -25,19 +25,67 @@ pipeline {
         stage('🔨 Build & Test') {
             steps {
                 dir('subscription-service') {
-                    sh 'chmod +x mvnw && ./mvnw clean package -B'
+                    sh '''
+                        chmod +x mvnw
+                        ./mvnw clean test -B
+                    '''
                 }
             }
             post {
                 always {
                     junit testResults: 'subscription-service/target/surefire-reports/*.xml',
                           allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('📊 JaCoCo Coverage Report') {
+            steps {
+                dir('subscription-service') {
+                    sh '''
+                        chmod +x mvnw
+                        ./mvnw jacoco:report -B
+                        echo "=========================================="
+                        echo "Verification du rapport JaCoCo"
+                        echo "=========================================="
+                        ls -la target/site/jacoco/
+                        echo ""
+                        echo "Rapport HTML : target/site/jacoco/index.html"
+                        echo "Rapport XML  : target/site/jacoco/jacoco.xml"
+                    '''
+                }
+            }
+            post {
+                always {
                     jacoco execPattern: 'subscription-service/target/jacoco.exec',
                            classPattern: 'subscription-service/target/classes',
                            sourcePattern: 'subscription-service/src/main/java',
-                           exclusionPattern: '**/dto/**,**/entities/**,**/enums/**,**/config/**,**/*Application.class'
-                    archiveArtifacts artifacts: 'subscription-service/target/*.jar', fingerprint: true
+                           exclusionPattern: '**/dto/**,**/entities/**,**/enums/**,**/config/**,**/*Application.class',
+                           changeBuildStatus: false
+
+                    archiveArtifacts artifacts: 'subscription-service/target/site/jacoco/**/*',
+                                     allowEmptyArchive: true,
+                                     fingerprint: true
+
+                    publishHTML(target: [
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'subscription-service/target/site/jacoco',
+                        reportFiles: 'index.html',
+                        reportName: '📊 JaCoCo Coverage Report',
+                        reportTitles: 'Test Coverage'
+                    ])
                 }
+            }
+        }
+
+        stage('📦 Package JAR') {
+            steps {
+                dir('subscription-service') {
+                    sh './mvnw package -DskipTests -B'
+                }
+                archiveArtifacts artifacts: 'subscription-service/target/*.jar', fingerprint: true
             }
         }
 
