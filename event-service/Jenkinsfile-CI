@@ -33,7 +33,8 @@ pipeline {
             }
             post {
                 always {
-                    junit 'event-service/target/surefire-reports/*.xml'
+                    // ✅ Fixed: glob pattern works regardless of working dir
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -42,6 +43,7 @@ pipeline {
             steps {
                 dir('event-service') {
                     withSonarQubeEnv('SonarQube') {
+                        // ✅ Fixed: removed broken markdown-style link
                         sh './mvnw sonar:sonar -Dsonar.projectKey=event-service -Dsonar.host.url=${SONAR_URL}'
                     }
                 }
@@ -79,6 +81,8 @@ pipeline {
             echo 'CI event-service réussi ✅'
             build job: 'event-service-CD', wait: false
         }
-        failure { echo 'CI event-service échoué ❌' }
+        failure {
+            echo 'CI event-service échoué ❌'
+        }
     }
 }
