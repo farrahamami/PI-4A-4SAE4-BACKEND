@@ -2,39 +2,27 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "marahmarah123/inscription-service"
+        DOCKER_IMAGE  = "marahmarah123/inscription-service"
         K8S_NAMESPACE = "default"
-        APP_NAME = "inscription-service"
-        APP_PORT = "8097"
+        APP_NAME      = "inscription-service"
+        APP_PORT      = "8097"
+        KUBECONFIG    = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
-                    url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND.git'
-            }
-        }
-
         stage('Récupérer le tag CI') {
             steps {
-                copyArtifacts(
-                    projectName: 'inscription-service-CI',
-                    selector: lastSuccessful(),
-                    filter: 'inscription-service-tag.txt'
-                )
+                copyArtifacts(projectName: 'inscription-service-CI', selector: lastSuccessful(), filter: 'inscription-service-tag.txt')
                 script {
                     env.DOCKER_TAG = readFile('inscription-service-tag.txt').trim()
-                    echo "Tag à déployer : ${env.DOCKER_TAG}"
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy') {
             steps {
-                script {
-                    sh """
+                sh """
                     kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -53,7 +41,7 @@ spec:
     spec:
       containers:
       - name: ${APP_NAME}
-        image: ${DOCKER_IMAGE}:${DOCKER_TAG}
+        image: ${DOCKER_IMAGE}:${env.DOCKER_TAG}
         ports:
         - containerPort: ${APP_PORT}
         imagePullPolicy: Always
@@ -80,23 +68,17 @@ spec:
   ports:
   - port: ${APP_PORT}
     targetPort: ${APP_PORT}
+    nodePort: 30097
   type: NodePort
 EOF
-                    """
-                }
-            }
-        }
-
-        stage('Vérifier le déploiement') {
-            steps {
-                sh "kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s"
-                sh "kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}"
+                    kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
+                """
             }
         }
     }
 
     post {
-        success { echo 'CD inscription-service déployé avec succès ✅' }
-        failure { echo 'CD inscription-service échoué ❌' }
+        success { echo 'inscription-service déployé ✅' }
+        failure { echo 'Déploiement échoué ❌' }
     }
 }
