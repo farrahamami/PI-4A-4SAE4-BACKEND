@@ -4,62 +4,27 @@ pipeline {
     environment {
         DOCKER_IMAGE = "marahmarah123/event-service"
         K8S_NAMESPACE = "default"
-        APP_NAME = "event-service"
-        APP_PORT = "8085"
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        APP_NAME     = "event-service"
+        APP_PORT     = "8085"
+        KUBECONFIG   = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
-                    url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND.git'
-            }
-        }
-
         stage('Récupérer le tag CI') {
             steps {
-                copyArtifacts(
-                    projectName: 'event-service-CI',
-                    selector: lastSuccessful(),
-                    filter: 'event-service-tag.txt'
-                )
+                copyArtifacts(projectName: 'event-service-CI', selector: lastSuccessful(), filter: 'event-service-tag.txt')
                 script {
                     env.DOCKER_TAG = readFile('event-service-tag.txt').trim()
-                    echo "Tag à déployer : ${env.DOCKER_TAG}"
                 }
             }
         }
 
-        stage('Vérifier Minikube') {
+        stage('Deploy') {
             steps {
-                script {
-                    sh """
-                        export KUBECONFIG=${KUBECONFIG}
-                        kubectl cluster-info
-                        kubectl get nodes
-                    """
-                }
-            }
-        }
-
-        stage('Charger image dans Minikube') {
-            steps {
-                script {
-                    sh """
-                        minikube image pull ${DOCKER_IMAGE}:${env.DOCKER_TAG}
-                    """
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    sh """
-                        export KUBECONFIG=${KUBECONFIG}
-                        kubectl apply -f - <<EOF
+                sh """
+                    minikube status || minikube start
+                    kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -82,11 +47,6 @@ spec:
         - containerPort: ${APP_PORT}
         imagePullPolicy: Always
         env:
-        - name: DB_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: event-mysql-secret
-              key: mysql-root-password
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -107,53 +67,15 @@ spec:
     nodePort: 30085
   type: NodePort
 EOF
-                    """
-                }
-            }
-        }
-
-        stage('Vérifier le déploiement') {
-            steps {
-                script {
-                    sh """
-                        export KUBECONFIG=${KUBECONFIG}
-                        kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
-                        kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}
-                        kubectl get svc ${APP_NAME} -n ${K8S_NAMESPACE}
-                    """
-                }
-            }
-        }
-
-        stage('URL du service') {
-            steps {
-                script {
-                    sh """
-                        echo "URL du service :"
-                        minikube service ${APP_NAME} -n ${K8S_NAMESPACE} --url
-                    """
-                }
+                    kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
+                    echo "URL: http://\$(minikube ip):30085"
+                """
             }
         }
     }
 
     post {
-        success {
-            echo 'CD event-service déployé avec succès sur Minikube ✅'
-        }
-        failure {
-            script {
-                sh """
-                    export KUBECONFIG=${KUBECONFIG}
-                    echo "=== Pods ==="
-                    kubectl get pods -n ${K8S_NAMESPACE} -l app=${APP_NAME}
-                    echo "=== Logs ==="
-                    kubectl logs -l app=${APP_NAME} -n ${K8S_NAMESPACE} --tail=50 || true
-                    echo "=== Events ==="
-                    kubectl get events -n ${K8S_NAMESPACE} --sort-by='.lastTimestamp' | tail -20
-                """
-            }
-            echo 'CD event-service échoué ❌'
-        }
+        success { echo 'event-service déployé ✅' }
+        failure { echo 'Déploiement échoué ❌' }
     }
 }
