@@ -75,7 +75,10 @@ pipeline {
     }
 
     post {
-        success { echo 'CI event-service réussi ✅' }
+        success {
+            echo 'CI event-service réussi ✅'
+            build job: 'event-service-CD', wait: false
+        }
         failure { echo 'CI event-service échoué ❌' }
     }
 }
