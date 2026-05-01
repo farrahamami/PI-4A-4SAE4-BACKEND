@@ -23,7 +23,6 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh """
-                    minikube status || minikube start
                     kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -68,7 +67,6 @@ spec:
   type: NodePort
 EOF
                     kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
-                    echo "URL: http://\$(minikube ip):30085"
                 """
             }
         }
