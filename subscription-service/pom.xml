@@ -166,6 +166,17 @@
                         <exclude>**/Entity/**</exclude>
                         <exclude>**/entities/**</exclude>
                         <exclude>**/enums/**</exclude>
+                        <exclude>**/RecommendationAIService*</exclude>
+                        <exclude>**/EmbeddingService*</exclude>
+                        <exclude>**/client/**</exclude>
+                        <exclude>**/RecommendationController*</exclude>
+                        <exclude>**/ChurnPredictionController*</exclude>
+                        <exclude>**/StatsController*</exclude>
+                        <exclude>**/SubscriptionService.class</exclude>
+                        <exclude>**/UserSubscriptionService.class</exclude>
+                        <exclude>**/RecommendationAIService*</exclude>
+                        <exclude>**/EmbeddingService*</exclude>
+                        <exclude>**/client/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
