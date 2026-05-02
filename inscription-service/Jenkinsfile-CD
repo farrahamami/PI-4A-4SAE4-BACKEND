@@ -19,8 +19,15 @@ pipeline {
                 )
                 script {
                     env.DOCKER_TAG = readFile('inscription-service-tag.txt').trim()
-                    echo "🏷️ Tag récupéré : ${env.DOCKER_TAG}"
+                    echo "Tag récupéré : ${env.DOCKER_TAG}"
                 }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
+                    url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND.git'
             }
         }
 
@@ -29,7 +36,7 @@ pipeline {
                 sh """
                     kubectl get namespace ${K8S_NAMESPACE} || \
                     kubectl create namespace ${K8S_NAMESPACE}
-                    echo "✅ Namespace '${K8S_NAMESPACE}' prêt"
+                    echo "Namespace '${K8S_NAMESPACE}' prêt"
                 """
             }
         }
@@ -37,7 +44,7 @@ pipeline {
         stage('Préparer les manifests') {
             steps {
                 sh """
-                   sed -i 's|IMAGE_TAG|${env.DOCKER_TAG}|g' inscription-service/k8s/deployment.yaml
+                    sed -i 's|IMAGE_TAG|${env.DOCKER_TAG}|g' inscription-service/k8s/deployment.yaml
                 """
             }
         }
@@ -45,8 +52,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh """
-                    kubectl apply -f k8s/deployment.yaml -n ${K8S_NAMESPACE}
-                    kubectl apply -f k8s/service.yaml    -n ${K8S_NAMESPACE}
+                    kubectl apply -f inscription-service/k8s/deployment.yaml -n ${K8S_NAMESPACE}
+                    kubectl apply -f inscription-service/k8s/service.yaml -n ${K8S_NAMESPACE}
                     kubectl rollout status deployment/${APP_NAME} \
                         -n ${K8S_NAMESPACE} --timeout=300s
                 """
@@ -55,7 +62,7 @@ pipeline {
     }
 
     post {
-        success { echo '✅ inscription-service déployé avec succès !' }
-        failure { echo '❌ Déploiement échoué' }
+        success { echo 'inscription-service déployé avec succès ✅' }
+        failure { echo 'Déploiement échoué ❌' }
     }
 }
