@@ -166,6 +166,9 @@
                         <exclude>**/Entity/**</exclude>
                         <exclude>**/entities/**</exclude>
                         <exclude>**/enums/**</exclude>
+                        <exclude>**/RecommendationAIService*</exclude>
+                        <exclude>**/EmbeddingService*</exclude>
+                        <exclude>**/client/**</exclude>
                     </excludes>
                 </configuration>
             </plugin>
