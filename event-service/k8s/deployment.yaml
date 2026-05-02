@@ -20,6 +20,10 @@ spec:
             - containerPort: 8085
           imagePullPolicy: Always
           env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://event-mysql.devops.svc.cluster.local:3306/pidev_events?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
