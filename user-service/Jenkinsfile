@@ -1,0 +1,111 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE           = 'farrahamami/user-service'
+        DOCKER_TAG             = "${BUILD_NUMBER}"
+        SONAR_TOKEN            = credentials('sonar-token')
+        SONAR_HOST_URL         = 'http://localhost:9000'
+    }
+
+    tools {
+        maven 'Maven'
+    }
+
+    stages {
+
+        // ── 1. CHECKOUT ───────────────────────────────────────────
+        stage('Checkout') {
+            steps {
+                echo '📥 Checking out source code...'
+                checkout scm
+            }
+        }
+
+        // ── 2. MAVEN CLEAN ────────────────────────────────────────
+        stage('Maven Clean') {
+            steps {
+                echo '🧹 Running Maven Clean...'
+                dir('user-service') {
+                    sh 'mvn clean'
+                }
+            }
+        }
+
+        // ── 3. MAVEN TEST ─────────────────────────────────────────
+        stage('Maven Test') {
+            steps {
+                echo '🧪 Running Tests...'
+                dir('user-service') {
+                    sh 'mvn test -Dtest=AuthServiceTest -Dexclude=**/PidevApplicationTests.java'
+                }
+            }
+            post {
+                always {
+                    junit 'user-service/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        // ── 4. MAVEN PACKAGE ──────────────────────────────────────
+        stage('Maven Package') {
+            steps {
+                echo '📦 Building JAR...'
+                dir('user-service') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        // ── 5. SONARQUBE ANALYSIS ─────────────────────────────────
+        stage('SonarQube Analysis') {
+            steps {
+                echo '🔍 Running SonarQube Analysis...'
+                dir('user-service') {
+                    sh """
+                        mvn sonar:sonar \
+                            -Dsonar.projectKey=user-service \
+                            -Dsonar.projectName=user-service \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.token=${SONAR_TOKEN}
+                    """
+                }
+            }
+        }
+
+        // ── 6. DOCKER BUILD ───────────────────────────────────────
+        stage('Docker Build') {
+            steps {
+                echo '🐳 Building Docker Image...'
+                dir('user-service') {
+                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                    sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                }
+            }
+        }
+
+        // ── 7. DOCKER PUSH ────────────────────────────────────────
+        stage('Docker Push') {
+            steps {
+                echo '🚀 Pushing Docker Image to Docker Hub...'
+                sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
+                sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                sh "docker push ${DOCKER_IMAGE}:latest"
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo '✅ CI Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ CI Pipeline failed!'
+        }
+        always {
+            sh 'docker logout'
+        }
+    }
+}

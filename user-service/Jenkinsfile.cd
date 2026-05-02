@@ -1,29 +1,68 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKER_IMAGE           = 'farrahamami/user-service'
+        DOCKER_TAG             = 'latest'
+    }
+
     stages {
-        stage('Build Docker Image') {
+
+        // ── 1. PULL IMAGE FROM DOCKER HUB ────────────────────────
+        stage('Pull Docker Image') {
             steps {
-                dir('/mnt/c/Users/farra/OneDrive/Desktop/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND/user-service') {
-                    sh 'docker build -t user-service .'
-                }
+                echo '📥 Pulling Docker Image from Docker Hub...'
+                sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
+                sh "docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}"
             }
         }
-        stage('Run Container') {
+
+        // ── 2. STOP OLD CONTAINER ─────────────────────────────────
+        stage('Stop Old Container') {
             steps {
-                sh 'docker stop user-service || true'
-                sh 'docker rm user-service || true'
-                sh 'docker run -d --name user-service -p 8081:8081 user-service'
+                echo '🛑 Stopping old container if running...'
+                sh '''
+                    docker stop user-service || true
+                    docker rm user-service || true
+                '''
             }
         }
+
+        // ── 3. DEPLOY CONTAINER ───────────────────────────────────
+        stage('Deploy Container') {
+            steps {
+                echo '🚀 Deploying new container...'
+                sh """
+                    docker run -d \
+                        --name user-service \
+                        --restart unless-stopped \
+                        -p 8081:8081 \
+                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                """
+            }
+        }
+
+        // ── 4. VERIFY DEPLOYMENT ──────────────────────────────────
+        stage('Verify Deployment') {
+            steps {
+                echo '✅ Verifying deployment...'
+                sh 'sleep 10'
+                sh 'docker ps | grep user-service'
+            }
+        }
+
     }
 
     post {
         success {
-            echo '✅ CD passed — app is deployed and running on port 8081!'
+            echo '✅ CD Pipeline — Deployment successful!'
         }
         failure {
-            echo '❌ CD failed — Docker build or run failed!'
+            echo '❌ CD Pipeline — Deployment failed!'
+        }
+        always {
+            sh 'docker logout'
         }
     }
 }
