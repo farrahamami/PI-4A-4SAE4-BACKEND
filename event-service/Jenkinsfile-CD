@@ -2,71 +2,54 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "marahmarah123/event-service"
-        K8S_NAMESPACE = "default"
-        APP_NAME     = "event-service"
-        APP_PORT     = "8085"
-        KUBECONFIG   = "/var/lib/jenkins/.kube/config"
+        DOCKER_IMAGE  = "marahmarah123/event-service"
+        K8S_NAMESPACE = "devops"
+        APP_NAME      = "event-service"
+        KUBECONFIG    = "/var/lib/jenkins/.kube/config"
     }
 
     stages {
 
         stage('Récupérer le tag CI') {
             steps {
-                copyArtifacts(projectName: 'event-service-CI', selector: lastSuccessful(), filter: 'event-service-tag.txt')
+                copyArtifacts(
+                    projectName: 'event-service-CI',
+                    selector: lastSuccessful(),
+                    filter: 'event-service-tag.txt'
+                )
                 script {
                     env.DOCKER_TAG = readFile('event-service-tag.txt').trim()
+                    echo "Déploiement du tag : ${env.DOCKER_TAG}"
                 }
+            }
+        }
+
+        stage('Checkout K8s manifests') {
+            steps {
+                git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
+                    url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND.git'
+            }
+        }
+
+        stage('Créer le namespace') {
+            steps {
+                sh """
+                    kubectl get namespace ${K8S_NAMESPACE} || \
+                    kubectl create namespace ${K8S_NAMESPACE}
+                """
             }
         }
 
         stage('Deploy') {
             steps {
                 sh """
-                    kubectl apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ${APP_NAME}
-  namespace: ${K8S_NAMESPACE}
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: ${APP_NAME}
-  template:
-    metadata:
-      labels:
-        app: ${APP_NAME}
-    spec:
-      containers:
-      - name: ${APP_NAME}
-        image: ${DOCKER_IMAGE}:${env.DOCKER_TAG}
-        ports:
-        - containerPort: ${APP_PORT}
-        imagePullPolicy: Always
-        env:
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: event-mysql-secret
-              key: mysql-root-password
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ${APP_NAME}
-  namespace: ${K8S_NAMESPACE}
-spec:
-  selector:
-    app: ${APP_NAME}
-  ports:
-  - port: ${APP_PORT}
-    targetPort: ${APP_PORT}
-    nodePort: 30085
-  type: NodePort
-EOF
-                    kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
+                    sed -i 's|IMAGE_TAG|${env.DOCKER_TAG}|g' event-service/k8s/deployment.yaml
+
+                    kubectl apply -f event-service/k8s/deployment.yaml -n ${K8S_NAMESPACE}
+                    kubectl apply -f event-service/k8s/service.yaml -n ${K8S_NAMESPACE}
+
+                    kubectl rollout status deployment/${APP_NAME} \
+                        -n ${K8S_NAMESPACE} --timeout=300s
                 """
             }
         }
