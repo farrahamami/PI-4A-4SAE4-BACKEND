@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inscription-service
+  namespace: devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inscription-service
+  template:
+    metadata:
+      labels:
+        app: inscription-service
+    spec:
+      containers:
+        - name: inscription-service
+          image: marahmarah123/inscription-service:IMAGE_TAG
+          ports:
+            - containerPort: 8097
+          imagePullPolicy: Always
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: inscription-mysql-secret
+                  key: mysql-root-password

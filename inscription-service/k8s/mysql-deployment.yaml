@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: inscription-mysql-secret
-  namespace: default
+  namespace: devops
 type: Opaque
 stringData:
   mysql-root-password: "root1234"
@@ -12,8 +12,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: inscription-mysql
-  namespace: default
-spec:
+  namespace: devops
+spec:                          # ← manquait ici
   replicas: 1
   selector:
     matchLabels:
@@ -44,10 +44,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: inscription-mysql
-  namespace: default
-spec:
+  namespace: devops
+spec:                          # ← manquait ici
   selector:
     app: inscription-mysql
   ports:
     - port: 3306
       targetPort: 3306
+  type: ClusterIP

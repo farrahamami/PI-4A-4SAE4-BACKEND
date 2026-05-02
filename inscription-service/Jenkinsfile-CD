@@ -3,9 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE  = "marahmarah123/inscription-service"
-        K8S_NAMESPACE = "default"
+        K8S_NAMESPACE = "devops"
         APP_NAME      = "inscription-service"
-        APP_PORT      = "8097"
         KUBECONFIG    = "/var/lib/jenkins/.kube/config"
     }
 
@@ -13,72 +12,50 @@ pipeline {
 
         stage('Récupérer le tag CI') {
             steps {
-                copyArtifacts(projectName: 'inscription-service-CI', selector: lastSuccessful(), filter: 'inscription-service-tag.txt')
+                copyArtifacts(
+                    projectName: 'inscription-service-CI',
+                    selector: lastSuccessful(),
+                    filter: 'inscription-service-tag.txt'
+                )
                 script {
                     env.DOCKER_TAG = readFile('inscription-service-tag.txt').trim()
+                    echo "🏷️ Tag récupéré : ${env.DOCKER_TAG}"
                 }
+            }
+        }
+
+        stage('Vérifier le namespace') {
+            steps {
+                sh """
+                    kubectl get namespace ${K8S_NAMESPACE} || \
+                    kubectl create namespace ${K8S_NAMESPACE}
+                    echo "✅ Namespace '${K8S_NAMESPACE}' prêt"
+                """
+            }
+        }
+
+        stage('Préparer les manifests') {
+            steps {
+                sh """
+                   sed -i 's|IMAGE_TAG|${env.DOCKER_TAG}|g' inscription-service/k8s/deployment.yaml
+                """
             }
         }
 
         stage('Deploy') {
             steps {
                 sh """
-                    kubectl apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ${APP_NAME}
-  namespace: ${K8S_NAMESPACE}
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: ${APP_NAME}
-  template:
-    metadata:
-      labels:
-        app: ${APP_NAME}
-    spec:
-      containers:
-      - name: ${APP_NAME}
-        image: ${DOCKER_IMAGE}:${env.DOCKER_TAG}
-        ports:
-        - containerPort: ${APP_PORT}
-        imagePullPolicy: Always
-        env:
-        - name: DB_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: inscription-mysql-secret
-              key: mysql-root-password
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: inscription-mysql-secret
-              key: mysql-root-password
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ${APP_NAME}
-  namespace: ${K8S_NAMESPACE}
-spec:
-  selector:
-    app: ${APP_NAME}
-  ports:
-  - port: ${APP_PORT}
-    targetPort: ${APP_PORT}
-    nodePort: 30097
-  type: NodePort
-EOF
-                    kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
+                    kubectl apply -f k8s/deployment.yaml -n ${K8S_NAMESPACE}
+                    kubectl apply -f k8s/service.yaml    -n ${K8S_NAMESPACE}
+                    kubectl rollout status deployment/${APP_NAME} \
+                        -n ${K8S_NAMESPACE} --timeout=300s
                 """
             }
         }
     }
 
     post {
-        success { echo 'inscription-service déployé ✅' }
-        failure { echo 'Déploiement échoué ❌' }
+        success { echo '✅ inscription-service déployé avec succès !' }
+        failure { echo '❌ Déploiement échoué' }
     }
 }
