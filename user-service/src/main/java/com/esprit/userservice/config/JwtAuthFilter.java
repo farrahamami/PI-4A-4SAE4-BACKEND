@@ -28,43 +28,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String SECRET = "super-secret-key-that-is-at-least-32-chars!";
     private static final Key    KEY    = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
-    /**
-     * ✅ Ces endpoints sont publics — ne pas appliquer le filtre JWT dessus.
-     * Cela évite que le filtre tente de valider un token absent (register/login)
-     * et évite aussi d'interférer avec les headers CORS sur les preflight OPTIONS.
-     */
-    private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/verify-email",
-            "/api/auth/resend-verification",
-            "/api/auth/face-login",
-            "/oauth2/",
-            "/login/oauth2/"
-    );
-
     public JwtAuthFilter(UserRepository userRepository) {
         this.userRepository = userRepository;
-    }
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String uri    = request.getRequestURI();
-        String method = request.getMethod();
-
-        // ✅ Ne pas filtrer les preflight OPTIONS
-        if (HttpMethod.OPTIONS.matches(method)) {
-            return true;
-        }
-
-        // ✅ Ne pas filtrer les endpoints publics
-        return PUBLIC_PATHS.stream().anyMatch(uri::startsWith);
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
 

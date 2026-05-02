@@ -1,11 +1,16 @@
 package com.esprit.userservice.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.context.annotation.Bean;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -22,16 +27,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // ✅ CORS désactivé ici — géré par l'API Gateway (application.yml globalcors)
-                // Ne pas configurer CORS dans le microservice, sinon double header → erreur browser
-                .cors(cors -> cors.disable())
+                // ✅ Enable CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // ❌ Disable CSRF (APIs stateless)
+                // ❌ Disable CSRF (for APIs)
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ✅ Autoriser les requêtes preflight OPTIONS
+                        // ✅ VERY IMPORTANT: allow preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Swagger
@@ -42,7 +46,7 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        // Auth endpoints — publics, pas besoin de JWT
+                        // Auth endpoints
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/oauth2/**",
@@ -50,7 +54,7 @@ public class SecurityConfig {
                                 "/api/ai/**"
                         ).permitAll()
 
-                        // APIs publiques
+                        // Public APIs
                         .requestMatchers(
                                 "/api/subscriptions/**",
                                 "/api/user-subscriptions/**",
@@ -61,11 +65,11 @@ public class SecurityConfig {
                                 "/api/courses/**"
                         ).permitAll()
 
-                        // Tout le reste nécessite une authentification
+                        // Everything else requires auth
                         .anyRequest().authenticated()
                 )
 
-                // ✅ Filtre JWT
+                // ✅ JWT filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
                 // OAuth2 login
@@ -73,16 +77,36 @@ public class SecurityConfig {
                         .successHandler(oauth2SuccessHandler)
                 )
 
-                // Erreurs d'authentification
+                // Handle unauthorized errors
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.sendError(401, "Unauthorized");
                         })
                 )
 
+                // Disable unused auth methods
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable());
 
         return http.build();
+    }
+
+    // ✅ CORS Configuration
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        // Optional but recommended:
+        config.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 }

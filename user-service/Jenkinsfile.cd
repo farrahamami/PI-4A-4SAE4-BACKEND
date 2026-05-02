@@ -1,0 +1,29 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                dir('/mnt/c/Users/farra/OneDrive/Desktop/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND/user-service') {
+                    sh 'docker build -t user-service .'
+                }
+            }
+        }
+        stage('Run Container') {
+            steps {
+                sh 'docker stop user-service || true'
+                sh 'docker rm user-service || true'
+                sh 'docker run -d --name user-service -p 8081:8081 user-service'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ CD passed — app is deployed and running on port 8081!'
+        }
+        failure {
+            echo '❌ CD failed — Docker build or run failed!'
+        }
+    }
+}

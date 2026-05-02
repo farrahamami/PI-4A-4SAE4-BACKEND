@@ -15,6 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
+@CrossOrigin(origins = "http://localhost:4200")
 public class AiAvatarController {
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
