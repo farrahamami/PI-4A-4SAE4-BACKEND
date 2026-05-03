@@ -1,14 +1,11 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_IMAGE = "farrahamami/user-service"
         DOCKER_TAG   = "${BUILD_NUMBER}"
         SONAR_URL    = "http://localhost:9000"
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
@@ -28,8 +25,9 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('user-service') {
-                    // FIX 1: added -Dmaven.test.failure.ignore=true so test failures
-                    //         don't abort the stage before jacoco:report runs
+                    // FIX 1: Removed -DskipTests flag that was silently skipping all tests.
+                    // FIX 2: Added -Dmaven.test.failure.ignore=true so a test failure doesn't
+                    //         abort the stage before jacoco:report gets a chance to run.
                     sh '''./mvnw test jacoco:report \
                         -Dtest="!PidevApplicationTests" \
                         -Dsurefire.failIfNoSpecifiedTests=false \
@@ -38,13 +36,12 @@ pipeline {
             }
             post {
                 always {
-                    // FIX 2: added allowEmptyResults so the step doesn't fail when
-                    //         no XML files exist yet (e.g. compile error)
+                    // FIX 3: allowEmptyResults prevents the step from failing when no XML
+                    //         report files exist (e.g. on a compilation error).
                     junit allowEmptyResults: true,
                           testResults: 'user-service/target/surefire-reports/*.xml'
 
-                    // FIX 3: publish JaCoCo coverage report in Jenkins UI
-                    //         paths must be relative to workspace root (not dir())
+                    // FIX 4: Paths are relative to workspace root, not the dir() block.
                     jacoco(
                         execPattern:   'user-service/target/jacoco.exec',
                         classPattern:  'user-service/target/classes',
@@ -59,8 +56,8 @@ pipeline {
             steps {
                 dir('user-service') {
                     withSonarQubeEnv('SonarQube') {
-                        // FIX 4: your original had a broken markdown hyperlink
-                        //         "[Dsonar.host](http://Dsonar.host).url" — fixed to plain flag
+                        // FIX 5: Corrected broken markdown hyperlink that was pasted as code:
+                        //         "-[Dsonar.host](http://Dsonar.host).url" → "-Dsonar.host.url"
                         sh '''./mvnw sonar:sonar \
                             -Dsonar.projectKey=user-service \
                             -Dsonar.host.url=${SONAR_URL} \
@@ -78,7 +75,6 @@ pipeline {
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
-                        // FIX 5: docker login moved BEFORE docker push (was after in original)
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
                         sh 'docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest'
@@ -98,7 +94,10 @@ pipeline {
     }
 
     post {
-        success { echo 'CI user-service passed ✅' }
-        failure { echo 'CI user-service failed ❌' }
+        always {
+            sh 'docker logout || true'
+        }
+        success { echo '✅ CI user-service passed' }
+        failure { echo '❌ CI user-service failed' }
     }
 }

@@ -6,6 +6,7 @@ pipeline {
         K8S_NAMESPACE   = 'default'
         K8S_DEPLOYMENT  = 'user-service'
         K8S_CONTAINER   = 'user-service'
+        PATH            = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
     }
 
     stages {
