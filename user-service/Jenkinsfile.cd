@@ -2,53 +2,94 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials')
-        DOCKER_IMAGE           = 'farrahamami/user-service'
-        DOCKER_TAG             = 'latest'
+        DOCKER_IMAGE    = 'farrahamami/user-service'
+        K8S_NAMESPACE   = 'default'
+        K8S_DEPLOYMENT  = 'user-service'
+        K8S_CONTAINER   = 'user-service'
     }
 
     stages {
 
-        // ── 1. PULL IMAGE FROM DOCKER HUB ────────────────────────
+        // ── 1. RECOVER BUILD TAG FROM CI ─────────────────────────────────────
+        // Copies the tag file archived by the CI pipeline so we deploy the
+        // exact image built by that run — not just "latest".
+        stage('Recover Docker Tag from CI') {
+            steps {
+                echo '🔖 Recovering Docker image tag from CI artifact...'
+                copyArtifacts(
+                    projectName:  'user-service-ci',   // must match your CI job name in Jenkins
+                    filter:       'user-service-tag.txt',
+                    selector:     lastSuccessful(),
+                    flatten:      true
+                )
+                script {
+                    env.DOCKER_TAG = readFile('user-service-tag.txt').trim()
+                    echo "📦 Image tag to deploy: ${env.DOCKER_TAG}"
+                }
+            }
+        }
+
+        // ── 2. PULL IMAGE FROM DOCKER HUB ────────────────────────────────────
         stage('Pull Docker Image') {
             steps {
-                echo '📥 Pulling Docker Image from Docker Hub...'
-                sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
-                sh "docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                echo "📥 Pulling ${DOCKER_IMAGE}:${DOCKER_TAG} from Docker Hub..."
+                withCredentials([usernamePassword(
+                    credentialsId:    'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh "docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                }
             }
         }
 
-        // ── 2. STOP OLD CONTAINER ─────────────────────────────────
-        stage('Stop Old Container') {
+        // ── 3. DEPLOY TO KUBERNETES ───────────────────────────────────────────
+        // Updates the image on the running Deployment and waits for rollout.
+        stage('Deploy to Kubernetes') {
             steps {
-                echo '🛑 Stopping old container if running...'
-                sh '''
-                    docker stop user-service || true
-                    docker rm user-service || true
-                '''
-            }
-        }
-
-        // ── 3. DEPLOY CONTAINER ───────────────────────────────────
-        stage('Deploy Container') {
-            steps {
-                echo '🚀 Deploying new container...'
+                echo "🚀 Deploying ${DOCKER_IMAGE}:${DOCKER_TAG} to Kubernetes..."
                 sh """
-                    docker run -d \
-                        --name user-service \
-                        --restart unless-stopped \
-                        -p 8081:8081 \
-                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                    kubectl set image deployment/${K8S_DEPLOYMENT} \
+                        ${K8S_CONTAINER}=${DOCKER_IMAGE}:${DOCKER_TAG} \
+                        --namespace=${K8S_NAMESPACE}
+                """
+                // Record the change in the rollout history
+                sh """
+                    kubectl annotate deployment/${K8S_DEPLOYMENT} \
+                        kubernetes.io/change-cause="Jenkins CD build ${BUILD_NUMBER} — image ${DOCKER_TAG}" \
+                        --namespace=${K8S_NAMESPACE} \
+                        --overwrite
                 """
             }
         }
 
-        // ── 4. VERIFY DEPLOYMENT ──────────────────────────────────
+        // ── 4. WAIT FOR ROLLOUT ───────────────────────────────────────────────
+        stage('Wait for Rollout') {
+            steps {
+                echo '⏳ Waiting for rollout to complete...'
+                sh """
+                    kubectl rollout status deployment/${K8S_DEPLOYMENT} \
+                        --namespace=${K8S_NAMESPACE} \
+                        --timeout=120s
+                """
+            }
+        }
+
+        // ── 5. VERIFY DEPLOYMENT ──────────────────────────────────────────────
         stage('Verify Deployment') {
             steps {
-                echo '✅ Verifying deployment...'
-                sh 'sleep 10'
-                sh 'docker ps | grep user-service'
+                echo '✅ Verifying pod health...'
+                sh """
+                    kubectl get pods \
+                        --namespace=${K8S_NAMESPACE} \
+                        -l app=${K8S_DEPLOYMENT} \
+                        -o wide
+                """
+                sh """
+                    kubectl get deployment/${K8S_DEPLOYMENT} \
+                        --namespace=${K8S_NAMESPACE}
+                """
             }
         }
 
@@ -56,13 +97,18 @@ pipeline {
 
     post {
         success {
-            echo '✅ CD Pipeline — Deployment successful!'
+            echo "✅ CD Pipeline — ${DOCKER_IMAGE}:${env.DOCKER_TAG} deployed successfully!"
         }
         failure {
-            echo '❌ CD Pipeline — Deployment failed!'
+            // Automatic rollback if the rollout fails
+            echo '❌ CD Pipeline failed — rolling back to previous version...'
+            sh """
+                kubectl rollout undo deployment/${K8S_DEPLOYMENT} \
+                    --namespace=${K8S_NAMESPACE} || true
+            """
         }
         always {
-            sh 'docker logout'
+            sh 'docker logout || true'
         }
     }
 }
