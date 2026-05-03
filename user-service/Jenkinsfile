@@ -1,11 +1,17 @@
 pipeline {
     agent any
+
     environment {
         DOCKER_IMAGE = "farrahamami/user-service"
         DOCKER_TAG   = "${BUILD_NUMBER}"
         SONAR_URL    = "http://localhost:9000"
+        // Persist Maven cache on the Jenkins agent between builds so
+        // dependencies are never re-downloaded from scratch each run.
+        MAVEN_OPTS   = "-Dmaven.repo.local=${env.HOME}/.m2/repository"
     }
+
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
@@ -17,6 +23,7 @@ pipeline {
             steps {
                 dir('user-service') {
                     sh 'chmod +x mvnw'
+                    // MAVEN_OPTS above ensures ~/.m2 is reused — no more full re-downloads
                     sh './mvnw clean package -DskipTests'
                 }
             }
@@ -25,9 +32,8 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('user-service') {
-                    // FIX 1: Removed -DskipTests flag that was silently skipping all tests.
-                    // FIX 2: Added -Dmaven.test.failure.ignore=true so a test failure doesn't
-                    //         abort the stage before jacoco:report gets a chance to run.
+                    // -Dmaven.test.failure.ignore lets jacoco:report always run
+                    // even when some tests fail, so we never get "missing exec file"
                     sh '''./mvnw test jacoco:report \
                         -Dtest="!PidevApplicationTests" \
                         -Dsurefire.failIfNoSpecifiedTests=false \
@@ -36,12 +42,8 @@ pipeline {
             }
             post {
                 always {
-                    // FIX 3: allowEmptyResults prevents the step from failing when no XML
-                    //         report files exist (e.g. on a compilation error).
                     junit allowEmptyResults: true,
                           testResults: 'user-service/target/surefire-reports/*.xml'
-
-                    // FIX 4: Paths are relative to workspace root, not the dir() block.
                     jacoco(
                         execPattern:   'user-service/target/jacoco.exec',
                         classPattern:  'user-service/target/classes',
@@ -56,8 +58,6 @@ pipeline {
             steps {
                 dir('user-service') {
                     withSonarQubeEnv('SonarQube') {
-                        // FIX 5: Corrected broken markdown hyperlink that was pasted as code:
-                        //         "-[Dsonar.host](http://Dsonar.host).url" → "-Dsonar.host.url"
                         sh '''./mvnw sonar:sonar \
                             -Dsonar.projectKey=user-service \
                             -Dsonar.host.url=${SONAR_URL} \
@@ -71,13 +71,14 @@ pipeline {
             steps {
                 dir('user-service') {
                     withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
+                        credentialsId:    'dockerhub-credentials',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                        // Pass the pre-built jar into Docker — no Maven inside the image build
                         sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
-                        sh 'docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest'
+                        sh 'docker tag  ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest'
                         sh 'docker push ${DOCKER_IMAGE}:${DOCKER_TAG}'
                         sh 'docker push ${DOCKER_IMAGE}:latest'
                     }
@@ -87,7 +88,8 @@ pipeline {
 
         stage('Save build info for CD') {
             steps {
-                sh 'echo ${DOCKER_TAG} > user-service-tag.txt'
+                // Write tag as a plain number with no trailing newline so CD reads it cleanly
+                sh 'printf "%s" "${DOCKER_TAG}" > user-service-tag.txt'
                 archiveArtifacts artifacts: 'user-service-tag.txt'
             }
         }
