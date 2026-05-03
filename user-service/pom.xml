@@ -123,6 +123,34 @@
             <version>2.3.0</version>
         </dependency>
 
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- BUCKET4J — Rate limiting                                    -->
+        <!-- Limits how many requests a client can make per time window  -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- OPENTELEMETRY — Distributed tracing & metrics               -->
+        <!-- Sends traces to Jaeger so you can visualise request flows   -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.36.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
