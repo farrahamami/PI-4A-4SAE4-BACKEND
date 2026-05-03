@@ -47,8 +47,7 @@ pipeline {
                     jacoco(
                         execPattern:   'user-service/target/jacoco.exec',
                         classPattern:  'user-service/target/classes',
-                        sourcePattern: 'user-service/src/main/java',
-                        reportPattern: 'user-service/target/site/jacoco/jacoco.xml'
+                        sourcePattern: 'user-service/src/main/java'
                     )
                 }
             }
