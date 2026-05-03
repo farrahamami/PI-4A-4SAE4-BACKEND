@@ -39,7 +39,7 @@ class PasswordResetControllerTest {
     }
 
     @Test
-    void forgotPassword_validEmail_returns200() {
+    void forgotPassword_validEmail_returns200() throws Exception {
         doNothing().when(passwordResetService).requestReset("a@b.com");
 
         ResponseEntity<?> resp = controller.forgotPassword(Map.of("email", "a@b.com"));
@@ -48,7 +48,7 @@ class PasswordResetControllerTest {
     }
 
     @Test
-    void forgotPassword_serviceThrows_stillReturns200() {
+    void forgotPassword_serviceThrows_stillReturns200() throws Exception {
         doThrow(new RuntimeException("fail")).when(passwordResetService).requestReset("a@b.com");
 
         ResponseEntity<?> resp = controller.forgotPassword(Map.of("email", "a@b.com"));
