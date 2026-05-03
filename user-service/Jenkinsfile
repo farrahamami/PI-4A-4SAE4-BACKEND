@@ -28,7 +28,7 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('user-service') {
-                    sh './mvnw test -Dtest=AuthServiceTest jacoco:report'
+                    sh './mvnw test jacoco:report'
                 }
             }
             post {
