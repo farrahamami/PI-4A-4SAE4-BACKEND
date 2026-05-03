@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,6 +36,12 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+        // UserService uses @Autowired field injection for these — @InjectMocks only
+        // handles constructor injection, so we inject them manually via reflection.
+        ReflectionTestUtils.setField(userService, "passwordEncoder",             passwordEncoder);
+        ReflectionTestUtils.setField(userService, "verificationTokenRepository", verificationTokenRepository);
+        ReflectionTestUtils.setField(userService, "tokenRepository",             tokenRepository);
+
         user = new User();
         user.setId(1);
         user.setName("Alice");
@@ -52,8 +59,7 @@ class UserServiceTest {
     @Test
     void getById_shouldReturnUser_whenFound() {
         when(repo.findById(1)).thenReturn(Optional.of(user));
-        User result = userService.getById(1);
-        assertEquals("Alice", result.getName());
+        assertEquals("Alice", userService.getById(1).getName());
     }
 
     @Test
@@ -67,30 +73,26 @@ class UserServiceTest {
     @Test
     void getAll_shouldReturnAllUsers() {
         when(repo.findAll()).thenReturn(List.of(user));
-        List<User> result = userService.getAll();
-        assertEquals(1, result.size());
+        assertEquals(1, userService.getAll().size());
     }
 
     // ── searchByName ──────────────────────────────────────────────────────────
 
     @Test
     void searchByName_shouldReturnEmpty_whenQueryIsNull() {
-        List<User> result = userService.searchByName(null);
-        assertTrue(result.isEmpty());
+        assertTrue(userService.searchByName(null).isEmpty());
         verifyNoInteractions(repo);
     }
 
     @Test
     void searchByName_shouldReturnEmpty_whenQueryIsBlank() {
-        List<User> result = userService.searchByName("   ");
-        assertTrue(result.isEmpty());
+        assertTrue(userService.searchByName("   ").isEmpty());
     }
 
     @Test
     void searchByName_shouldDelegateToRepo_whenQueryIsValid() {
         when(repo.searchByName("Alice")).thenReturn(List.of(user));
-        List<User> result = userService.searchByName("Alice");
-        assertEquals(1, result.size());
+        assertEquals(1, userService.searchByName("Alice").size());
     }
 
     // ── updateUser ────────────────────────────────────────────────────────────
@@ -105,9 +107,9 @@ class UserServiceTest {
         details.setLastName("Jones");
         details.setEmail("bob@test.com");
 
-        User result = userService.updateUser(1, details);
-        assertEquals("Bob", user.getName());
-        assertEquals("Jones", user.getLastName());
+        userService.updateUser(1, details);
+        assertEquals("Bob",          user.getName());
+        assertEquals("Jones",        user.getLastName());
         assertEquals("bob@test.com", user.getEmail());
     }
 
@@ -116,8 +118,8 @@ class UserServiceTest {
         when(repo.findById(1)).thenReturn(Optional.of(user));
         when(repo.save(any())).thenReturn(user);
 
-        User result = userService.updateUser(1, new User());
-        assertEquals("Alice", user.getName()); // unchanged
+        userService.updateUser(1, new User());
+        assertEquals("Alice", user.getName());
     }
 
     // ── updateAvatar ──────────────────────────────────────────────────────────

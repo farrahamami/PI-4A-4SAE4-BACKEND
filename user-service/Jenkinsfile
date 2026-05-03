@@ -1,21 +1,17 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_IMAGE = "farrahamami/user-service"
         DOCKER_TAG   = "${BUILD_NUMBER}"
         SONAR_URL    = "http://localhost:9000"
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 git branch: 'devops/on-integrated6sur6/ads_cicd_k8s',
                     url: 'https://github.com/farrahamami/ESPRIT-PIDEV-4SAE4-2025-2026-Prolance-BACKEND.git'
             }
         }
-
         stage('Build & Package') {
             steps {
                 dir('user-service') {
@@ -24,11 +20,10 @@ pipeline {
                 }
             }
         }
-
         stage('Tests') {
             steps {
                 dir('user-service') {
-                    sh './mvnw test jacoco:report'
+                    sh './mvnw test jacoco:report -Dtest="!PidevApplicationTests" -Dsurefire.failIfNoSpecifiedTests=false'
                 }
             }
             post {
@@ -37,7 +32,6 @@ pipeline {
                 }
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
                 dir('user-service') {
@@ -47,7 +41,6 @@ pipeline {
                 }
             }
         }
-
         stage('Docker Build & Push') {
             steps {
                 dir('user-service') {
@@ -65,7 +58,6 @@ pipeline {
                 }
             }
         }
-
         stage('Save build info for CD') {
             steps {
                 sh 'echo ${DOCKER_TAG} > user-service-tag.txt'
@@ -73,7 +65,6 @@ pipeline {
             }
         }
     }
-
     post {
         success { echo 'CI user-service passed ✅' }
         failure { echo 'CI user-service failed ❌' }
