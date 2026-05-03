@@ -28,7 +28,7 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('user-service') {
-                    sh './mvnw test -Dtest=AuthServiceTest'
+                    sh './mvnw test -Dtest=AuthServiceTest jacoco:report'
                 }
             }
             post {
@@ -42,7 +42,7 @@ pipeline {
             steps {
                 dir('user-service') {
                     withSonarQubeEnv('SonarQube') {
-                        sh './mvnw sonar:sonar -Dsonar.projectKey=user-service -Dsonar.host.url=${SONAR_URL}'
+                        sh './mvnw sonar:sonar -Dsonar.projectKey=user-service -Dsonar.host.url=${SONAR_URL} -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
                     }
                 }
             }
